@@ -8,6 +8,7 @@ import type {
 	CreateNoteBody,
 	Note,
 	NotePreview,
+	ReorderNotesBody,
 	UpdateNoteBody,
 } from "../shared/types";
 import { errorBody, isUsableId, readJson } from "./http";
@@ -17,11 +18,15 @@ export const projectNotes = new Hono<{ Bindings: Env }>();
 
 /* The list the project page draws.
  *
- * The order is the whole Keep behaviour in one clause. Pinned notes carry a
- * timestamp and unpinned ones carry null; SQLite sorts nulls last under DESC,
- * so pinned rise to the top by themselves, most recently pinned first, and the
- * rest follow newest first. No CASE, no second query, and the
- * notes_by_project index serves both the filter and the order.
+ * The order is the whole Keep behaviour. Pinned notes carry a timestamp and
+ * unpinned ones carry null, so the leading clause splits the two sections and
+ * pinned rise to the top by themselves.
+ *
+ * Inside each section, a hand-dragged order comes next. Notes never dragged
+ * hold a null position and sort FIRST, not last, so a new note keeps arriving
+ * at the top of the list under the composer that made it even after the rows
+ * below have been arranged. The trailing pair is the original order and is what
+ * a database nobody has dragged still answers with, unchanged.
  *
  * The body is clipped in SQL as well as in the mapper. The mapper is the
  * guarantee; the SQL is so a project full of long notes does not haul every
@@ -29,10 +34,12 @@ export const projectNotes = new Hono<{ Bindings: Env }>();
 const LIST_SQL = `
 	SELECT id, project_id, title,
 	       substr(body, 1, ${PREVIEW_LENGTH}) AS body,
-	       images, pinned_at, created_at, updated_at, archived_at
+	       images, pinned_at, position, created_at, updated_at, archived_at
 	  FROM notes
 	 WHERE project_id = ? AND archived_at IS NULL
-	 ORDER BY pinned_at DESC, created_at DESC
+	 ORDER BY (pinned_at IS NULL),
+	          position IS NOT NULL, position ASC,
+	          pinned_at DESC, created_at DESC
 `;
 
 projectNotes.get("/", async (c) => {
@@ -42,6 +49,55 @@ projectNotes.get("/", async (c) => {
 	const projectId = c.req.param("projectId");
 	if (projectId === undefined || !(await projectIsLive(c.env.DB, projectId))) {
 		return c.json<ApiErrorBody>({ error: "No such project." }, 404);
+	}
+
+	const { results } = await c.env.DB.prepare(LIST_SQL)
+		.bind(projectId)
+		.all<NoteRow>();
+	return c.json<NotePreview[]>(results.map(toNotePreview));
+});
+
+/* The order one section of the list is in.
+ *
+ * Ahead of nothing here, but kept beside the list it rewrites. A section at a
+ * time: the browser sends the ids of the section it dragged, so the two orders
+ * stay separate and a row cannot change its pinned state by being dropped.
+ *
+ * `updated_at` is deliberately NOT touched. Arranging rows is not editing a
+ * note, and that column belongs to the save path; the fewer writers it has, the
+ * fewer ways a save can be confused about which write was last. */
+projectNotes.put("/order", async (c) => {
+	const projectId = c.req.param("projectId");
+	if (projectId === undefined || !(await projectIsLive(c.env.DB, projectId))) {
+		return c.json<ApiErrorBody>({ error: "No such project." }, 404);
+	}
+
+	const body = await readJson<ReorderNotesBody>(c.req.raw);
+	const ids = body === null ? undefined : body.ids;
+
+	if (!Array.isArray(ids) || !ids.every(isUsableId)) {
+		return c.json(errorBody("An order is a list of note ids."), 400);
+	}
+
+	/* A repeated id would give one note two positions and leave another with
+	   none, which is a half-applied order rather than a wrong one. */
+	if (new Set(ids).size !== ids.length) {
+		return c.json(errorBody("That order names a note twice."), 400);
+	}
+
+	if (ids.length > 0) {
+		const statement = c.env.DB.prepare(
+			`UPDATE notes SET position = ?
+			 WHERE id = ? AND project_id = ? AND archived_at IS NULL`,
+		);
+
+		/* One batch, so a connection lost halfway cannot leave the list holding
+		   part of the old order and part of the new one. The project id is in the
+		   WHERE clause, so a stale list can only ever move notes inside the project
+		   it came from, and an id this project does not have changes nothing. */
+		await c.env.DB.batch(
+			ids.map((id, index) => statement.bind(index, id, projectId)),
+		);
 	}
 
 	const { results } = await c.env.DB.prepare(LIST_SQL)
@@ -216,8 +272,15 @@ notes.patch("/:id", async (c) => {
 		if (body.pinned && existing.pinned_at === null) {
 			assignments.push("pinned_at = ?");
 			values.push(new Date().toISOString());
+			/* Crossing between the two sections drops the hand-dragged place the
+			   note held in the one it left. Without this, a note pinned after the
+			   list had been arranged would land wherever its old number happened to
+			   put it among the pinned rows, instead of on top where pinning has
+			   always put it. */
+			assignments.push("position = NULL");
 		} else if (!body.pinned && existing.pinned_at !== null) {
 			assignments.push("pinned_at = NULL");
+			assignments.push("position = NULL");
 		}
 	}
 

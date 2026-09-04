@@ -29,6 +29,8 @@ export type NoteRow = {
 	/** A JSON array of R2 keys. Always a string here, never an array. */
 	images: string;
 	pinned_at: string | null;
+	/** Where the row sits in its section of the list. Null means never dragged. */
+	position: number | null;
 	created_at: string;
 	updated_at: string;
 	archived_at: string | null;

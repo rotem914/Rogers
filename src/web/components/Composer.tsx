@@ -43,6 +43,7 @@ export function Composer({
 	const [dragging, setDragging] = useState(false);
 
 	const root = useRef<HTMLDivElement>(null);
+	const titleField = useRef<HTMLInputElement>(null);
 	const bodyField = useRef<HTMLTextAreaElement>(null);
 	const picker = useRef<HTMLInputElement>(null);
 
@@ -219,9 +220,9 @@ export function Composer({
 	/* If the login expires mid-sentence, park the text before the reload. */
 	useEffect(() => onSessionExpired(() => saverRef.current?.park()), []);
 
-	/* Opening puts the caret in the body, the way Keep does. */
+	/* Opening puts the caret in the title. */
 	useEffect(() => {
-		if (open) bodyField.current?.focus();
+		if (open) titleField.current?.focus();
 	}, [open]);
 
 	/* The hidden file input behind both image buttons. */
@@ -290,6 +291,7 @@ export function Composer({
 		>
 			<div className="flex items-start gap-2 px-4 pt-3">
 				<input
+					ref={titleField}
 					value={title}
 					dir="auto"
 					placeholder="Title"

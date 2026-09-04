@@ -50,7 +50,7 @@ Rogers/
 │   │   ├── pages/         # one file per address: Home, Project, Note
 │   │   ├── components/    # TopBar, ProjectTile, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
 │   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
-│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in
+│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in; reorder.ts, the shared drag helpers
 │   │   └── styles/        # tokens.css, the whole palette
 │   └── shared/            # types both sides import
 ├── public/                # served as-is: manifest.webmanifest, sw.js (offline page only), offline.html, icons/

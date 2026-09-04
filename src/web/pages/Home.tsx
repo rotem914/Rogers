@@ -12,6 +12,7 @@ import type {
 } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { useApi } from "../lib/useApi";
+import { arrange, moved } from "../lib/reorder";
 import { TopBar } from "../components/TopBar";
 import { ProjectTile } from "../components/ProjectTile";
 import { TileSkeleton, Toast } from "../components/Feedback";
@@ -145,38 +146,6 @@ export function Home() {
 			/>
 		</>
 	);
-}
-
-/**
- * The server's list, arranged by an order the mouse is dragging.
- *
- * Any disagreement between the two, a project created or archived since the
- * order was taken, falls back to the server's own list. A tile is never dropped
- * from the grid to honour an order that has gone stale.
- */
-function arrange(list: Project[], order: string[]): Project[] {
-	if (order.length !== list.length) return list;
-
-	const byId = new Map(list.map((project) => [project.id, project]));
-	const arranged: Project[] = [];
-	for (const id of order) {
-		const project = byId.get(id);
-		if (project === undefined) return list;
-		arranged.push(project);
-	}
-	return arranged;
-}
-
-/** The list with `id` moved to where `target` sits. Null when nothing moves. */
-function moved(ids: string[], id: string, target: string): string[] | null {
-	const from = ids.indexOf(id);
-	const to = ids.indexOf(target);
-	if (from === -1 || to === -1 || from === to) return null;
-
-	const next = [...ids];
-	next.splice(from, 1);
-	next.splice(to, 0, id);
-	return next;
 }
 
 /**

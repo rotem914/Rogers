@@ -48,9 +48,13 @@ export function NoteRow({
 
 	return (
 		<div className="group relative rounded-card border border-border bg-surface px-4 py-3 hover:bg-surface-hover">
+			{/* Not draggable: a link drags its own address by default, and this one
+			    covers the row, so it would win over dragging the row itself into a
+			    new place in the list. */}
 			<Link
 				to={`/n/${note.id}`}
 				aria-label={untitled ? "Open note" : `Open ${note.title}`}
+				draggable={false}
 				className="absolute inset-0 rounded-card"
 			/>
 

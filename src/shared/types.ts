@@ -99,6 +99,17 @@ export type UpdateNoteBody = {
 	pinned?: boolean;
 };
 
+/**
+ * One section of a project's list, in the order it should show.
+ *
+ * A section at a time, not the whole page: pinned notes and the rest are two
+ * orders, and a row dragged across the line between them would be asking to be
+ * pinned, which is a different request.
+ */
+export type ReorderNotesBody = {
+	ids: string[];
+};
+
 /* ---------------------------------------------------------------- images */
 
 /** What an upload answers with. The key is what a note stores. */

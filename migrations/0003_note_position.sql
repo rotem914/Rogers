@@ -1,0 +1,11 @@
+-- Rogers, third migration: where a note sits in its project's list.
+--
+-- Additive, like every migration here. One nullable column, no default, and no
+-- existing row is read or rewritten.
+--
+-- Null means "never dragged", and for notes null sorts FIRST rather than last,
+-- which is the opposite of the projects column and is deliberate: a new note
+-- must keep arriving at the top of the list, right under the composer that
+-- made it, even after the list below it has been arranged by hand. The next
+-- drag gives it a position of its own and it settles into the order.
+ALTER TABLE notes ADD COLUMN position INTEGER;

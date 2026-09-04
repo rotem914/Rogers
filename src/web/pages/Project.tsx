@@ -2,13 +2,19 @@
  *
  * The sections are the whole Keep behaviour: PINNED above OTHERS, with the
  * headers only when something is pinned. The order inside each comes from the
- * Worker, so this file only splits. */
+ * Worker; this file splits the two and lets each one be dragged into a new
+ * order of its own. */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { useParams } from "react-router";
-import type { NotePreview, Project as ProjectType } from "../../shared/types";
+import type {
+	NotePreview,
+	Project as ProjectType,
+	ReorderNotesBody,
+} from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { useApi } from "../lib/useApi";
+import { arrange, moved } from "../lib/reorder";
 import { TopBar } from "../components/TopBar";
 import { NoteRow } from "../components/NoteRow";
 import { Composer, type ComposerHandle } from "../components/Composer";
@@ -28,6 +34,7 @@ export function Project() {
 	);
 
 	const composer = useRef<ComposerHandle>(null);
+	const [orderFailed, setOrderFailed] = useState(false);
 
 	/* N opens the composer, unless the keystroke belongs to a field. */
 	useEffect(() => {
@@ -90,12 +97,20 @@ export function Project() {
 				{notes.loading && notes.data === null && <RowSkeleton />}
 
 				{sectioned && (
-					<Section label="Pinned" notes={pinned} onChanged={notes.refetch} />
+					<Section
+						label="Pinned"
+						projectId={project.id}
+						notes={pinned}
+						onChanged={notes.refetch}
+						onOrderFailed={setOrderFailed}
+					/>
 				)}
 				<Section
 					label={sectioned ? "Others" : null}
+					projectId={project.id}
 					notes={others}
 					onChanged={notes.refetch}
+					onOrderFailed={setOrderFailed}
 				/>
 
 				{!notes.loading && notes.data?.length === 0 && (
@@ -103,21 +118,108 @@ export function Project() {
 				)}
 			</main>
 
-			<Toast message={notes.error === null ? null : `Could not load the notes. ${notes.error}`} />
+			<Toast
+				message={
+					notes.error !== null
+						? `Could not load the notes. ${notes.error}`
+						: orderFailed
+							? "Could not save the new order."
+							: null
+				}
+			/>
 		</>
 	);
 }
 
 function Section({
 	label,
+	projectId,
 	notes,
 	onChanged,
+	onOrderFailed,
 }: {
 	label: string | null;
+	projectId: string;
 	notes: NotePreview[];
 	onChanged: () => void;
+	onOrderFailed: (failed: boolean) => void;
 }) {
+	/* The order being dragged: in state so the list redraws, and in a ref so the
+	   drop handler can read what the last hover wrote, because state is a render
+	   behind by then. An empty list means "however the Worker sent them".
+
+	   Each section owns its own, and that is what keeps a row dragged out of
+	   Pinned from landing among the others: the section it is dragged into never
+	   learns a drag is running, so it never becomes a drop target and the row
+	   goes back where it started. Crossing the line between the two sections is
+	   what the pin does, not what a drag does. */
+	const [order, setOrder] = useState<string[]>([]);
+	const orderRef = useRef<string[]>([]);
+	const [dragging, setDragging] = useState<string | null>(null);
+	const draggedRef = useRef<string | null>(null);
+	const droppedRef = useRef(false);
+
+	const rows = arrange(notes, order);
+
+	function showOrder(next: string[]) {
+		orderRef.current = next;
+		setOrder(next);
+	}
+
+	function startDrag(event: DragEvent<HTMLLIElement>, id: string) {
+		draggedRef.current = id;
+		droppedRef.current = false;
+		setDragging(id);
+		/* Seeded from what is on screen, so a preview built on top of it can never
+		   disagree with the list the drag started from. */
+		showOrder(rows.map((note) => note.id));
+		event.dataTransfer.effectAllowed = "move";
+		/* Firefox starts no drag at all unless the drag carries something. */
+		event.dataTransfer.setData("text/plain", id);
+	}
+
+	/* Hovering a row moves the dragged one into its place, so the list shows the
+	   result while the mouse is still down instead of after it is let go. */
+	function dragOnto(id: string) {
+		const dragged = draggedRef.current;
+		if (dragged === null) return;
+		const next = moved(orderRef.current, dragged, id);
+		if (next !== null) showOrder(next);
+	}
+
+	async function drop() {
+		droppedRef.current = true;
+		draggedRef.current = null;
+		setDragging(null);
+
+		const ids = orderRef.current;
+		if (ids.length === 0) return;
+
+		onOrderFailed(false);
+		try {
+			const body: ReorderNotesBody = { ids };
+			await apiFetch<NotePreview[]>(`/api/projects/${projectId}/notes/order`, {
+				method: "PUT",
+				body: JSON.stringify(body),
+			});
+			onChanged();
+		} catch {
+			/* Back to the order the Worker still holds. A list showing an order
+			   that was never saved is worse than one that did not move. */
+			showOrder([]);
+			onOrderFailed(true);
+		}
+	}
+
+	function endDrag() {
+		draggedRef.current = null;
+		setDragging(null);
+		/* Let go outside the list, or cancelled with Escape: put the preview back. */
+		if (!droppedRef.current) showOrder([]);
+	}
+
 	if (notes.length === 0) return null;
+
 	return (
 		<section className="mb-6">
 			{label !== null && (
@@ -125,9 +227,23 @@ function Section({
 					{label}
 				</h2>
 			)}
-			<ul className="flex flex-col gap-2">
-				{notes.map((note) => (
-					<li key={note.id}>
+			<ul
+				className="flex flex-col gap-2"
+				onDragOver={(event) => {
+					/* Without this the list is not a drop target and no drop fires. */
+					if (draggedRef.current !== null) event.preventDefault();
+				}}
+				onDrop={() => void drop()}
+			>
+				{rows.map((note) => (
+					<li
+						key={note.id}
+						draggable
+						onDragStart={(event) => startDrag(event, note.id)}
+						onDragEnter={() => dragOnto(note.id)}
+						onDragEnd={endDrag}
+						className={dragging === note.id ? "opacity-50" : undefined}
+					>
 						<NoteRow note={note} onChanged={onChanged} />
 					</li>
 				))}

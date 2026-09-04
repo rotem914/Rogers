@@ -62,6 +62,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-04 · One nullable pinned_at column carries both the pin and the pinned order
 - 2026-09-04 · The API speaks its own shape, not the table shape
 - 2026-09-04 · Project order is a nullable position column, written for the whole list at once
+- 2026-09-04 · A dragged note order is per section, and an undragged note sorts first
 
 ---
 
@@ -207,3 +208,46 @@ which is nothing at a few dozen projects and would need revisiting at a few
 hundred. The list query now depends on the column, so **the migration must reach
 a database before code that reads it does**: applying it to the live database is
 a prerequisite of the next deploy, not a follow-up.
+
+---
+
+## 2026-09-04 - A dragged note order is per section, and an undragged note sorts first
+
+### Context
+
+Rotem asked for the same drag reordering inside a project that Home had just
+got. A project list is not a grid of tiles: it is split into PINNED and the
+rest, the order inside each is different, and the composer sits above it so new
+notes arrive at the top. Two behaviours already existed and could not change: a
+new note appears first, and pinning a note puts it at the top of Pinned.
+
+### Options
+
+1. One order across the whole page, so a row dragged from one section into the
+   other is pinned or unpinned by the drop.
+2. One order per section, with a drag that crosses the line simply refused.
+3. No manual order in the pinned section at all.
+
+### Decision
+
+Option 2, taken by the assistant. Each section sends only its own ids to
+`PUT /api/projects/:projectId/notes/order`, and the two sections keep separate
+drag state on the page, which is what makes a cross-section drop impossible
+rather than merely discouraged: the section being dragged into never learns a
+drag is running, so it never becomes a drop target.
+
+Two supporting choices came with it. A note with no position sorts FIRST inside
+its section, the opposite of the projects grid, so a new note keeps arriving at
+the top under the composer even after the rows below have been arranged.
+And pinning or unpinning clears the note's position, so pinning still puts a
+note at the top of Pinned instead of dropping it wherever its old number
+happened to land among the pinned rows.
+
+### Consequences
+
+Changing a note's section stays the pin button's job, which is one obvious
+control rather than two ways to do the same thing. The cost is the one behaviour
+that does shift: a note that is unpinned comes back at the TOP of the list
+rather than in its creation slot, because clearing its position is what puts it
+back among the undragged. Revisit if Rotem wants a drop across the line to pin,
+which would mean the drag has to write the pinned state as well as the order.
