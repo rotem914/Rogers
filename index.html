@@ -16,6 +16,17 @@
 			}
 		</style>
 
+		<!-- Google Sans, the one typeface. The range asks for the variable file, so
+		     every weight the app uses arrives in one download per script. The
+		     hebrew subset is part of the family, which is why notes that mix
+		     Hebrew and English stay in one typeface. -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400..700&display=swap"
+		/>
+
 		<!-- The manifest is fetched WITH the login cookie. Cloudflare Access sits in
 		     front of it, and a manifest fetched without credentials gets the login
 		     page instead, which makes the app silently uninstallable. -->

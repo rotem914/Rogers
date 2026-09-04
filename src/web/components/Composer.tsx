@@ -183,20 +183,6 @@ export function Composer({
 		onClosed();
 	}, [onClosed, reset]);
 
-	/* Delete from the toolbar: put the draft away and close. */
-	const discard = useCallback(async () => {
-		if (creatingRef.current !== null) await creatingRef.current;
-		if (saverRef.current !== null) {
-			try {
-				await apiFetch<Note>(`/api/notes/${idRef.current}`, { method: "DELETE" });
-			} catch {
-				/* Leaving a stray draft behind is recoverable; losing text is not. */
-			}
-		}
-		reset();
-		onClosed();
-	}, [onClosed, reset]);
-
 	/* Click outside, and Escape, both close. Registered only while open. */
 	useEffect(() => {
 		if (!open) return;
@@ -241,21 +227,13 @@ export function Composer({
 
 	if (!open) {
 		return (
-			<div className="flex items-center rounded-card border border-border bg-surface shadow-raised">
+			<div className="flex items-center rounded-[10px] border border-border bg-surface shadow-raised">
 				<button
 					type="button"
 					onClick={() => setOpen(true)}
-					className="min-w-0 flex-1 rounded-card px-4 py-3 text-left text-muted hover:bg-surface-hover"
+					className="min-w-0 flex-1 rounded-[10px] px-4 py-3 text-left text-lg text-muted hover:bg-surface-hover"
 				>
 					Take a note…
-				</button>
-				<button
-					type="button"
-					aria-label="Add image"
-					onClick={() => picker.current?.click()}
-					className="mr-2 rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-text"
-				>
-					🖼
 				</button>
 				{fileInput}
 			</div>
@@ -284,7 +262,7 @@ export function Composer({
 				setDragging(false);
 				void addFiles(imageFiles(event.dataTransfer));
 			}}
-			className={`rounded-card border bg-surface shadow-raised ${
+			className={`rounded-[10px] border bg-surface shadow-raised ${
 				dragging ? "border-accent" : "border-border"
 			}`}
 		>
@@ -296,7 +274,14 @@ export function Composer({
 					placeholder="Title"
 					aria-label="Title"
 					onChange={(event) => change({ title: event.target.value })}
-					className="bidi min-w-0 flex-1 bg-transparent font-medium text-text outline-none placeholder:text-faint"
+					onKeyDown={(event) => {
+						/* Enter in the title finishes the note, the same as clicking away. */
+						if (event.key === "Enter") {
+							event.preventDefault();
+							void close();
+						}
+					}}
+					className="bidi min-w-0 flex-1 bg-transparent text-lg font-medium text-text outline-none placeholder:text-faint"
 				/>
 				<button
 					type="button"
@@ -316,6 +301,7 @@ export function Composer({
 					value={body}
 					placeholder="Take a note…"
 					aria-label="Note"
+					className="text-lg"
 					onChange={(event) => change({ body: event.target.value })}
 				/>
 				{images.length > 0 && (
@@ -339,14 +325,6 @@ export function Composer({
 						🖼
 					</button>
 					{fileInput}
-					<button
-						type="button"
-						aria-label="Delete"
-						onClick={() => void discard()}
-						className="rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-danger"
-					>
-						🗑
-					</button>
 					<span className="px-1 text-sm text-faint">
 						{uploadError !== null ? (
 							<span className="text-danger">{uploadError}</span>

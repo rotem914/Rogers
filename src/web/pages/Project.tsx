@@ -18,7 +18,7 @@ import { arrange, moved } from "../lib/reorder";
 import { TopBar } from "../components/TopBar";
 import { NoteRow } from "../components/NoteRow";
 import { Composer, type ComposerHandle } from "../components/Composer";
-import { RowSkeleton, Toast } from "../components/Feedback";
+import { Toast } from "../components/Feedback";
 
 export function Project() {
 	const { id } = useParams<{ id: string }>();
@@ -59,9 +59,7 @@ export function Project() {
 		return (
 			<>
 				<TopBar backTo="/" title="" />
-				<main className="mx-auto max-w-2xl px-4 py-6">
-					<RowSkeleton />
-				</main>
+				<main className="mx-auto max-w-2xl px-4 py-6" />
 			</>
 		);
 	}
@@ -89,12 +87,10 @@ export function Project() {
 				title={<ProjectName project={project} onRenamed={projects.refetch} />}
 			/>
 
-			<main className="mx-auto max-w-2xl px-4 py-6">
-				<div className="mb-4">
+			<main className="mx-auto max-w-[752px] px-4 pt-14 pb-6">
+				<div className="mb-6">
 					<Composer ref={composer} projectId={project.id} onClosed={notes.refetch} />
 				</div>
-
-				{notes.loading && notes.data === null && <RowSkeleton />}
 
 				{sectioned && (
 					<Section
@@ -228,7 +224,7 @@ function Section({
 				</h2>
 			)}
 			<ul
-				className="flex flex-col gap-2"
+				className="flex flex-col gap-[14px]"
 				onDragOver={(event) => {
 					/* Without this the list is not a drop target and no drop fires. */
 					if (draggedRef.current !== null) event.preventDefault();
@@ -295,7 +291,7 @@ function ProjectName({
 			<button
 				type="button"
 				onClick={() => setEditing(true)}
-				className="bidi block w-full truncate text-left text-lg font-medium"
+				className="bidi block w-full truncate text-left text-[32px] font-medium"
 			>
 				{project.name}
 			</button>
@@ -317,7 +313,7 @@ function ProjectName({
 					setEditing(false);
 				}
 			}}
-			className={`w-full bg-transparent text-lg font-medium outline-none ${
+			className={`w-full bg-transparent text-[32px] font-medium outline-none ${
 				failed ? "text-danger" : "text-text"
 			}`}
 		/>

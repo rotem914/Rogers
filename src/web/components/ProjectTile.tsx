@@ -110,7 +110,7 @@ export function ProjectTile({
 						draggable={false}
 						className="absolute inset-0 rounded-card"
 					/>
-					<span className="bidi pointer-events-none line-clamp-3 pr-8 font-medium">
+					<span className="bidi pointer-events-none line-clamp-3 pr-8 text-[24px] font-medium">
 						{project.name}
 					</span>
 				</>

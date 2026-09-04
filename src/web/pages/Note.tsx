@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import type { Note as NoteType, Project, UpdateNoteBody } from "../../shared/types";
+import type { Note as NoteType, UpdateNoteBody } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { onSessionExpired, takeParkedDraft } from "../platform/session";
 import { NoteSaver, draftKey, type SaveStatus } from "../lib/autosave";
@@ -20,7 +20,7 @@ import { AutoGrowTextarea } from "../components/AutoGrowTextarea";
 import { ImageStrip } from "../components/ImageStrip";
 import { ACCEPT_ATTRIBUTE, imageFiles, uploadImage } from "../lib/upload";
 import { Menu } from "../components/Menu";
-import { Skeleton, Toast } from "../components/Feedback";
+import { Toast } from "../components/Feedback";
 
 export function Note() {
 	const { id } = useParams<{ id: string }>();
@@ -30,9 +30,7 @@ export function Note() {
 		return (
 			<>
 				<TopBar backTo="/" title="" />
-				<main className="mx-auto max-w-2xl px-4 py-6">
-					<Skeleton lines={5} />
-				</main>
+				<main className="mx-auto max-w-2xl px-4 py-6" />
 			</>
 		);
 	}
@@ -56,10 +54,8 @@ export function Note() {
 function Editor({ note }: { note: NoteType }) {
 	const navigate = useNavigate();
 
-	/* The project name for the bar, and the address the back arrow goes to.
-	   Deliberately not browser history: a note opened from a link has none. */
-	const projects = useApi<Project[]>("/api/projects");
-	const project = projects.data?.find((p) => p.id === note.projectId) ?? null;
+	/* Where the back arrow goes. Deliberately not browser history: a note opened
+	   from a link has none. */
 	const backTo = `/p/${note.projectId}`;
 
 	const [title, setTitle] = useState(note.title);
@@ -209,7 +205,7 @@ function Editor({ note }: { note: NoteType }) {
 			<TopBar
 				backTo={backTo}
 				onBack={() => void goBack()}
-				title={project?.name ?? ""}
+				title=""
 				trailing={
 					<div className="flex items-center gap-2">
 						<span className="text-sm text-faint" aria-live="polite">
@@ -285,34 +281,38 @@ function Editor({ note }: { note: NoteType }) {
 					setDragging(false);
 					void addFiles(imageFiles(event.dataTransfer));
 				}}
-				className={`mx-auto max-w-2xl rounded-card border px-4 py-6 ${
+				className={`mx-auto max-w-[1160px] rounded-card border px-4 pt-12 pb-6 ${
 					dragging ? "border-accent" : "border-transparent"
 				}`}
 			>
-				<input
-					value={title}
-					dir="auto"
-					placeholder="Title"
-					aria-label="Title"
-					onChange={(event) => change({ title: event.target.value })}
-					onBlur={() => void flush()}
-					className="bidi mb-3 block w-full bg-transparent text-xl font-medium text-text outline-none placeholder:text-faint"
-				/>
+				{/* The text reads in a narrow column; the pictures keep the full width. */}
+				<div className="mx-auto w-full max-w-[720px]">
+					<input
+						value={title}
+						dir="auto"
+						placeholder="Title"
+						aria-label="Title"
+						onChange={(event) => change({ title: event.target.value })}
+						onBlur={() => void flush()}
+						className="bidi mb-8 block w-full bg-transparent text-[32px] font-medium text-text outline-none placeholder:text-faint"
+					/>
 
-				<AutoGrowTextarea
-					value={body}
-					placeholder="Take a note…"
-					aria-label="Note"
-					onChange={(event) => change({ body: event.target.value })}
-					onBlur={() => void flush()}
-					className="min-h-40"
-				/>
+					<AutoGrowTextarea
+						value={body}
+						placeholder="Take a note…"
+						aria-label="Note"
+						onChange={(event) => change({ body: event.target.value })}
+						onBlur={() => void flush()}
+						className="min-h-28 text-[18px]"
+					/>
+				</div>
 
 				{images.length > 0 && (
 					<div className="mt-4">
 						<ImageStrip
 							keys={images}
 							onRemove={(key) => change({ images: images.filter((k) => k !== key) })}
+							size="lg"
 						/>
 					</div>
 				)}

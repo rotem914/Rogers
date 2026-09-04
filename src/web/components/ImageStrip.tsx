@@ -15,18 +15,25 @@ export function ImageStrip({
 	keys: string[];
 	/** Present when the pictures can be removed and opened. */
 	onRemove?: (key: string) => void;
-	size?: "sm" | "md";
+	size?: "sm" | "md" | "lg";
 }) {
 	const [open, setOpen] = useState<string | null>(null);
 	if (keys.length === 0) return null;
 
-	const box = size === "sm" ? "size-12" : "size-24";
+	/* lg is the note page: the picture at its own aspect, as wide as the column
+	   allows and never past 1160px. */
+	const box =
+		size === "sm" ? "size-12" : size === "lg" ? "w-full max-w-[1160px]" : "size-24";
+	const fill = size === "lg" ? "block w-full" : "size-full object-cover";
 
 	return (
 		<>
 			<ul className="flex flex-wrap gap-2">
 				{keys.map((key) => (
-					<li key={key} className="group/thumb relative">
+					<li
+						key={key}
+						className={`group/thumb relative ${size === "lg" ? "w-full" : ""}`}
+					>
 						{onRemove === undefined ? (
 							<img
 								src={imageSrc(key)}
@@ -46,7 +53,7 @@ export function ImageStrip({
 										src={imageSrc(key)}
 										alt=""
 										loading="lazy"
-										className="size-full object-cover"
+										className={fill}
 									/>
 								</button>
 								<button

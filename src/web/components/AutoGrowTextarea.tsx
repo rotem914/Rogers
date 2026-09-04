@@ -8,6 +8,7 @@
 
 import {
 	useCallback,
+	useEffect,
 	useLayoutEffect,
 	useRef,
 	type Ref,
@@ -32,12 +33,29 @@ export function AutoGrowTextarea({ value, className = "", ref, ...rest }: Props)
 		[ref],
 	);
 
-	useLayoutEffect(() => {
+	const fit = useCallback(() => {
 		const el = own.current;
 		if (el === null) return;
 		el.style.height = "0px";
 		el.style.height = `${el.scrollHeight}px`;
-	}, [value]);
+	}, []);
+
+	useLayoutEffect(fit, [fit, value]);
+
+	/* The webfont arrives after the first paint, and its lines are sometimes
+	   taller than the fallback's, so a height measured before it lands leaves
+	   the last line of a note hidden behind `overflow-hidden`. Measure once more
+	   when the font is in. Runs on mount only; by the time anything is typed the
+	   font is long since loaded. */
+	useEffect(() => {
+		let live = true;
+		void document.fonts.ready.then(() => {
+			if (live) fit();
+		});
+		return () => {
+			live = false;
+		};
+	}, [fit]);
 
 	return (
 		<textarea

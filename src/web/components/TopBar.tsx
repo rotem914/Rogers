@@ -31,23 +31,36 @@ export function TopBar({ backTo, onBack, title, trailing }: TopBarProps) {
 	}
 
 	return (
-		<header className="sticky top-0 z-10 flex h-topbar items-center gap-3 border-b border-border bg-surface px-4">
-			{backTo !== undefined && (
-				<Link
-					to={backTo}
-					onClick={handleBack}
-					aria-label="Back"
-					className="-ml-2 rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-text"
-				>
-					‹
-				</Link>
-			)}
+		<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-8">
+			<div className="mx-auto flex w-full max-w-[1168px] items-center gap-3 px-4">
+				{backTo !== undefined && (
+					<Link
+						to={backTo}
+						onClick={handleBack}
+						aria-label="Back"
+						className="-ml-2 flex size-12 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-hover hover:text-text"
+					>
+						<svg
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+							className="size-6"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
+							<path d="M15 18 9 12l6-6" />
+						</svg>
+					</Link>
+				)}
 
-			<span className="min-w-0 flex-1 truncate text-lg font-medium tracking-tight">
-				{title}
-			</span>
+				<span className="min-w-0 flex-1 truncate text-[32px] font-medium tracking-tight">
+					{title}
+				</span>
 
-			{trailing}
+				{trailing}
+			</div>
 		</header>
 	);
 }

@@ -47,7 +47,7 @@ export function NoteRow({
 	}
 
 	return (
-		<div className="group relative rounded-card border border-border bg-surface px-4 py-3 hover:bg-surface-hover">
+		<div className="group relative rounded-[10px] border border-border bg-surface px-4 py-3 hover:bg-surface-hover">
 			{/* Not draggable: a link drags its own address by default, and this one
 			    covers the row, so it would win over dragging the row itself into a
 			    new place in the list. */}
@@ -55,12 +55,12 @@ export function NoteRow({
 				to={`/n/${note.id}`}
 				aria-label={untitled ? "Open note" : `Open ${note.title}`}
 				draggable={false}
-				className="absolute inset-0 rounded-card"
+				className="absolute inset-0 rounded-[10px]"
 			/>
 
 			<div className="pointer-events-none pr-16">
 				{!untitled && (
-					<span className="bidi block truncate font-medium">{note.title}</span>
+					<span className="bidi block truncate text-lg font-medium">{note.title}</span>
 				)}
 
 				{note.preview.trim() !== "" && (
@@ -70,7 +70,7 @@ export function NoteRow({
 					   would silently kill the clamp. break-words is for a pasted link,
 					   one unbroken word that would otherwise run past the edge. */
 					<span
-						className={`bidi line-clamp-3 break-words whitespace-pre-wrap text-muted ${
+						className={`bidi line-clamp-3 break-words whitespace-pre-wrap text-lg text-muted ${
 							untitled ? "" : "mt-1"
 						}`}
 					>

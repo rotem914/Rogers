@@ -15,7 +15,7 @@ import { useApi } from "../lib/useApi";
 import { arrange, moved } from "../lib/reorder";
 import { TopBar } from "../components/TopBar";
 import { ProjectTile } from "../components/ProjectTile";
-import { TileSkeleton, Toast } from "../components/Feedback";
+import { Toast } from "../components/Feedback";
 
 export function Home() {
 	const { data, loading, error, refetch } = useApi<Project[]>("/api/projects");
@@ -100,11 +100,9 @@ export function Home() {
 		<>
 			<TopBar title="Rogers" />
 
-			<main className="mx-auto max-w-3xl px-4 py-8">
-				{loading && data === null && <TileSkeleton />}
-
+			<main className="mx-auto max-w-[1168px] px-4 pt-14 pb-8">
 				<div
-					className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+					className="grid grid-cols-[repeat(auto-fill,272px)] gap-4"
 					onDragOver={(event) => {
 						/* Without this the grid is not a drop target and no drop fires. */
 						if (draggedRef.current !== null) event.preventDefault();
