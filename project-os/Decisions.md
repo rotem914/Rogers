@@ -59,6 +59,8 @@ Every decision below, oldest first. Read this list; open only the entries your
 task touches. A line in _italics_ means part of that entry no longer holds.
 
 - 2026-09-04 · Plan v1 decisions live in PLAN.md until code exists
+- 2026-09-04 · One nullable pinned_at column carries both the pin and the pinned order
+- 2026-09-04 · The API speaks its own shape, not the table shape
 
 ---
 
@@ -89,3 +91,73 @@ is Rotem's call, raised in the install report under Clashes.
 that changes a `PLAN.md` verdict gets an entry here and one line in `PLAN.md`
 section 12 pointing at it, so the two never disagree. Revisit when the plan is
 done and `PLAN.md` retires to `notes/`.
+
+---
+
+## 2026-09-04 - One nullable pinned_at column carries both the pin and the pinned order
+
+### Context
+
+The project page shows pinned notes first, in the order they were pinned, then
+everything else newest first, in one list. The schema had to carry three facts:
+whether a note is pinned, when it was pinned, and where it sits in the list.
+
+### Options
+
+1. A boolean `pinned` column, plus a separate column for the pinned order.
+2. A nullable `pinned_at` timestamp, null meaning not pinned.
+3. A `position` column maintained by hand across both sections.
+
+### Decision
+
+Option 2, taken by the assistant while writing the first migration.
+
+### Consequences
+
+One column answers all three questions, and the list needs one query with no
+CASE expression and no second fetch: `ORDER BY pinned_at DESC, created_at DESC`.
+SQLite sorts nulls last under DESC, so unpinned notes fall below pinned ones by
+themselves. Proven on the local database: pinned newest first, then unpinned
+newest first, archived excluded, and the query planner uses `notes_by_project`
+with no separate sort step.
+
+What future work must not break: pinning is a timestamp write, never a boolean,
+and unpinning writes null rather than a flag. Anything that starts storing a
+manual order for notes has to revisit this, because a `position` column would
+then compete with `pinned_at` for the same job. Revisit if drag to reorder is
+ever wanted inside a section.
+
+---
+
+## 2026-09-04 - The API speaks its own shape, not the table shape
+
+### Context
+
+The shared types define what the Worker sends and the app receives. The easy
+route is to send table rows straight out, which needs no mapping code at all.
+
+### Options
+
+1. Send rows as they are: snake_case, `archived_at` included, `images` as the
+   stored JSON string.
+2. Define a separate wire shape and map row to wire inside the Worker.
+
+### Decision
+
+Option 2, taken by the assistant while writing the shared types.
+
+### Consequences
+
+Three things follow. `archived_at` never appears in a response type, so an
+archived note cannot reach a screen by accident, which protects the invariant
+that a delete is recoverable and invisible rather than merely hidden by a
+filter someone might forget. `images` is a real array on the wire and a JSON
+string in the column, parsed in one place. And reading reports state,
+`pinnedAt`, while writing expresses intent, `pinned` as a boolean, so no
+redundant flag can drift away from the column that orders the list.
+
+The cost is a mapping function per table, in the Worker. Future work must not
+bypass it: a route that answers with a raw row would leak `archived_at` and
+hand the app a JSON string where it expects an array. A check that reads the
+columns and the types and compares them ran clean at this step and can be run
+again whenever the schema moves.

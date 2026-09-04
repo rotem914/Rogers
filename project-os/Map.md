@@ -43,6 +43,7 @@ Rogers/
 ├── tsconfig.node.json     # build tooling
 ├── eslint.config.js
 ├── worker-configuration.d.ts   # generated; rerun npm run cf-typegen after wrangler.json changes
+├── migrations/            # D1 migrations, applied local and remote; additive only
 ├── src/
 │   ├── api/               # the Worker: Hono routes under /api
 │   ├── web/               # the SPA
@@ -61,7 +62,7 @@ Rogers/
 └── .gitattributes
 ```
 
-`migrations/` and `desktop/` arrive with the plan steps that create them, and this
+`desktop/` arrives with the plan step that creates it, and this
 tree is updated in the same change. `src/web` still holds the template's own page;
 Rogers screens arrive at plan step 1.3 and phase 4.
 
@@ -71,7 +72,8 @@ Where state lives and who is allowed to write it.
 
 | What | Where | Format | Written by |
 |---|---|---|---|
-| Nothing stored yet | the planned stores are described in `PLAN.md` section 4 | | |
+| Projects and notes | D1 database `rogers-db`, bound as `env.DB` | SQLite | `src/api/*` only. No other module opens the database. |
+| Images | R2 bucket, plan step 5.1 | binary | not created yet |
 
 ## Ownership
 
@@ -82,6 +84,7 @@ anything.
 |---|---|---|
 | Process | `CLAUDE.md`, `project-os/*` | The kit. Rules change only through the workflow's documentation routing. |
 | Plan | `PLAN.md` | Rotem's approval-gated build plan; its checkboxes track progress. |
+| Schema | `migrations/*.sql` | The only way the database shape changes. Additive only: a migration never drops a column or rewrites a row. |
 | API | `src/api/*`, `wrangler.json` | The Worker. Every route lives under `/api`; `run_worker_first` sends those to the Worker before the assets. |
 | Web | `src/web/pages/*`, `src/web/components/*`, `index.html` | The screens. Any address that is not `/api/*` returns the app shell. |
 | Platform | `src/web/platform/*` | Where the API lives, what an expired Access session looks like, and web versus Tauri. Every request goes through `api-client.ts`; no screen calls `fetch` itself. |

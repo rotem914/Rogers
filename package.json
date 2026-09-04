@@ -30,6 +30,8 @@
 		"build": "tsc -b && vite build",
 		"cf-typegen": "wrangler types",
 		"check": "tsc -b && vite build && wrangler deploy --dry-run",
+		"db:migrate:local": "wrangler d1 migrations apply rogers-db --local",
+		"db:migrate:remote": "wrangler d1 migrations apply rogers-db --remote",
 		"deploy": "wrangler deploy",
 		"dev": "vite",
 		"lint": "eslint .",

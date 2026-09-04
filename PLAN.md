@@ -264,10 +264,10 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 
 ### Phase 2 · database
 
-- [ ] 2.1 **Me** · `wrangler d1 create rogers-db`; add the binding with its id. ✓ `wrangler d1 list` shows it.
-- [ ] 2.2 **Me** · `migrations/0001_init.sql` per section 4, including `pinned_at`; npm scripts `db:migrate:local` and `db:migrate:remote`. ✓ local apply, both tables listed.
-- [ ] 2.3 **Me** · apply the migration remotely. ✓ same check with `--remote`.
-- [ ] 2.4 **Me** · `wrangler types` for Env; shared types in `src/shared`. ✓ `tsc` clean. Commit.
+- [x] 2.1 **Me** · `wrangler d1 create rogers-db`; add the binding with its id. ✓ `wrangler d1 list` shows it.
+- [x] 2.2 **Me** · `migrations/0001_init.sql` per section 4, including `pinned_at`; npm scripts `db:migrate:local` and `db:migrate:remote`. ✓ local apply, both tables listed.
+- [x] 2.3 **Me** · apply the migration remotely. ✓ same check with `--remote`.
+- [x] 2.4 **Me** · `wrangler types` for Env; shared types in `src/shared`. ✓ `tsc` clean. Commit.
 
 ### Phase 3 · API
 
