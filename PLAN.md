@@ -245,18 +245,18 @@ Steps:
 
 Each line is one step with a done-when check (✓). Work stops after each step until approved. V1 = phases 0 to 7 and ends with the installed PWA. Phase 8 is V1.1 and starts only if, after living with the PWA, native capabilities such as a global hotkey, a tray icon, or run at startup are actually missed.
 
-Execution rules for Me: every wrangler command runs non-interactively, with `--yes` / `-y` where the command supports it, in a shell without a TTY so wrangler auto-confirms the rest. Any prompt that still needs a human answer is handed to You instead of waiting. The account's workers.dev subdomain must exist before 6.1 so the first deploy does not prompt.
+Execution rules for Me: every wrangler command runs non-interactively, with `--yes` / `-y` where the command supports it, in a shell without a TTY so wrangler auto-confirms the rest. Any prompt that still needs a human answer is handed to You instead of waiting. The account's workers.dev subdomain must exist before 6.1 so the first deploy does not prompt. Rotem starts every dev server himself, `npm run dev` in his terminal, and I drive it; I never start one, per CLAUDE.md rule 16.
 
 ### Phase 0 · prerequisites
 
-- [ ] 0.1 **Me** · this file exists in the repo root. ✓ You read it and say go.
+- [x] 0.1 **Me** · this file exists in the repo root. ✓ You read it and say go.
 - [ ] 0.2 **You** · Cloudflare account exists; run `npx wrangler login` in your own terminal. Also make sure the account has a workers.dev subdomain (Workers & Pages → Overview). ✓ `npx wrangler whoami` prints your account.
-- [ ] 0.3 **Me** · `git init`, `.gitignore` (node_modules, dist, .wrangler, .dev.vars), first commit. ✓ one commit in the log.
-- [ ] 0.4 **Me** · create the GitHub repo with `gh` and push. If `gh` is not logged in, You run `gh auth login` first. ✓ repo page opens.
+- [x] 0.3 **Me** · `git init`, `.gitignore` (node_modules, dist, .wrangler, .dev.vars), first commit. ✓ one commit in the log (a244ab1).
+- [x] 0.4 **Me** · create the GitHub repo with `gh` and push. If `gh` is not logged in, You run `gh auth login` first. ✓ repo page opens. Done 2026-09-04: Rotem created github.com/rotem914/Rogers himself; main pushed.
 
 ### Phase 1 · skeleton
 
-- [ ] 1.1 **Me** · scaffold with the Cloudflare React + Vite + Workers template. ✓ `npm run dev` shows the template page on localhost:5173.
+- [ ] 1.1 **Me** · scaffold with the Cloudflare React + Vite + Workers template. ✓ You start `npm run dev`; the template page shows on localhost:5173.
 - [ ] 1.2 **Me** · restructure into `src/api` (Hono), `src/web`, `src/shared`. Worker config: assets dir, SPA fallback, `/api/*` always routed to the Worker. ✓ `/api/health` returns JSON, any other path returns the app shell.
 - [ ] 1.3 **Me** · dark-only foundation: tokens, root color-scheme, Tailwind v4, theme-color meta, app shell with a top bar. ✓ dark page, dark scrollbars, no white flash on reload.
 - [ ] 1.4 **Me** · routes Home `/`, Project `/p/:id`, Note `/n/:id` as placeholders; API client module with the Access expiry handling from section 6; small data hook (loading, error, refetch); platform shim. ✓ reloading a note URL works; a mocked redirect from the API triggers the reload path instead of a crash.
@@ -312,7 +312,7 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 ### Phase 8 · V1.1, only if native capabilities are missed: Windows desktop with Tauri v2
 
 - [ ] 8.1 **You** · `winget install Rustlang.Rustup`; accept the installer's offer to install the Visual C++ build tools. A few GB, once. ✓ `cargo -V` works.
-- [ ] 8.2 **Me** · `desktop/` via Tauri init. Window config: dark theme, dark background, title, identifier, an empty capabilities set for the remote frontend (zero native/IPC permissions), and `dragDropEnabled: false` so HTML5 drag-and-drop reaches the page instead of WebView2 opening the dropped file (Tauri v1 called this `fileDropEnabled`). The window loads a tiny local loader page: it probes the live URL and navigates to it; if unreachable it shows a dark offline screen with Retry, so an offline launch never shows a browser error. ✓ `npm run tauri dev` opens a dark window with the app; You log in once inside it; with the network off, the offline screen appears; dropping an image onto a note works.
+- [ ] 8.2 **Me** · `desktop/` via Tauri init. Window config: dark theme, dark background, title, identifier, an empty capabilities set for the remote frontend (zero native/IPC permissions), and `dragDropEnabled: false` so HTML5 drag-and-drop reaches the page instead of WebView2 opening the dropped file (Tauri v1 called this `fileDropEnabled`). The window loads a tiny local loader page: it probes the live URL and navigates to it; if unreachable it shows a dark offline screen with Retry, so an offline launch never shows a browser error. ✓ You start `npm run tauri dev`; a dark window opens with the app; You log in once inside it; with the network off, the offline screen appears; dropping an image onto a note works.
 - [ ] 8.3 **Me** · icons generated from the same PNG as the PWA. ✓ window and taskbar icon.
 - [ ] 8.4 **Me** · Tauri build. ✓ **You** install the `.msi` from the bundle folder, launch from the Start menu.
 - [ ] 8.5 **Me, optional** · global hotkey Ctrl+Shift+K brings the window up and focuses the composer; tray icon; run at startup. Each opens only the specific Tauri permission it needs, scoped to the live origin.

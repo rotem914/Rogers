@@ -1,0 +1,28 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.log('PROJECT RULES: read CLAUDE.md, PLAN.md and the files in project-os before doing anything in this session. Conversations.md governs every reply you write. Workflow.md governs every task. PLAN.md is the build plan: one approved step at a time, then stop for the next go. Read them now, in full, if you have not.')\"",
+            "timeout": 10,
+            "suppressOutput": true
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node -e \"console.log('STANDING RULES for this reply and this task: 1) Reply exactly as project-os/Conversations.md prescribes: English, terse, ---- dividers with H1 headings, one sentence per line, no long dashes. 2) One action at a time: no subagents, no parallel tool calls. 3) Build only the PLAN.md step Rotem approved, then stop and wait for the go; tick its checkbox when done. 4) At pickup say the risk level, and which model and effort this task deserves: Opus medium for routine work, Fable high for the API client, the composer and autosave, the image flows, stubborn bugs and reviews. 5) Change only what was asked, smallest safe change. 6) Never write outside this project folder; scratch goes in .tmp/. 7) After any completed change add its History row. 8) Never say a check passed unless it actually ran. 9) Rotem starts the dev server, never you. 10) Dark mode only, and a typed note is never lost or overwritten by an older save.')\"",
+            "timeout": 10,
+            "suppressOutput": true
+          }
+        ]
+      }
+    ]
+  }
+}

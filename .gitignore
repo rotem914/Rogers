@@ -8,3 +8,6 @@ desktop/src-tauri/target/
 *.log
 .DS_Store
 Thumbs.db
+.tmp/
+.claude/settings.local.json
+.claude/settings.local.json.backup
