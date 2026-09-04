@@ -51,7 +51,7 @@ Rogers/
 │   │   ├── components/    # TopBar, ProjectTile, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
 │   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
 │   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in; reorder.ts, the shared drag helpers
-│   │   └── styles/        # tokens.css, the whole palette
+│   │   └── styles/        # tokens.css, the whole palette; fonts/, the Google Sans files and their licence
 │   └── shared/            # types both sides import
 ├── public/                # served as-is: manifest.webmanifest, sw.js (offline page only), offline.html, icons/
 ├── notes/                 # free-standing documents
@@ -89,5 +89,5 @@ anything.
 | Web | `src/web/pages/*`, `src/web/components/*`, `index.html` | The screens. Any address that is not `/api/*` returns the app shell. |
 | Saving | `src/web/lib/autosave.ts` | The only code that sends a note save. One request in flight per note, later edits coalesced, answers never written back into the editor, unsaved text parked on dispose. Both the composer and the note page go through it; nothing else may call PATCH on a note. |
 | Platform | `src/web/platform/*` | Where the API lives, what an expired Access session looks like, and web versus Tauri. Every request goes through `api-client.ts`; no screen calls `fetch` itself. |
-| Look | `src/web/styles/tokens.css`, `src/web/index.css` | The palette and the base sheet. A raw hex anywhere else is a bug. |
+| Look | `src/web/styles/tokens.css`, `src/web/index.css`, `src/web/styles/fonts/` | The palette and the base sheet. A raw hex anywhere else is a bug. The fonts are served by Rogers itself, never from Google; `OFL.txt` and `TRADEMARKS.txt` must stay beside them, since shipping the licence is the condition for using the typeface. |
 | Shared | `src/shared/*` | Types both sides import. One definition only; never a second copy under api or web. |
