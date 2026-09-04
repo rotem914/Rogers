@@ -45,12 +45,12 @@ Rogers/
 ├── worker-configuration.d.ts   # generated; rerun npm run cf-typegen after wrangler.json changes
 ├── migrations/            # D1 migrations, applied local and remote; additive only
 ├── src/
-│   ├── api/               # the Worker: Hono routes under /api
+│   ├── api/               # the Worker: projects, notes, images (upload and serve), rows, http
 │   ├── web/               # the SPA
 │   │   ├── pages/         # one file per address: Home, Project, Note
-│   │   ├── components/    # TopBar, ProjectTile, NoteRow, Composer, Menu, Feedback, AutoGrowTextarea
+│   │   ├── components/    # TopBar, ProjectTile, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
 │   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
-│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver
+│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in
 │   │   └── styles/        # tokens.css, the whole palette
 │   └── shared/            # types both sides import
 ├── public/                # served as-is
@@ -73,7 +73,7 @@ Where state lives and who is allowed to write it.
 | What | Where | Format | Written by |
 |---|---|---|---|
 | Projects and notes | D1 database `rogers-db`, bound as `env.DB` | SQLite | `src/api/*` only. No other module opens the database. |
-| Images | R2 bucket, plan step 5.1 | binary | not created yet |
+| Images | R2 bucket `rogers-images`, bound as `env.IMAGES` | binary, keyed by uuid | `src/api/*` only, through the upload route; a note stores keys, never bytes |
 
 ## Ownership
 

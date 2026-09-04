@@ -292,11 +292,11 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 
 ### Phase 5 · images
 
-- [ ] 5.1 **Me** · `wrangler r2 bucket create rogers-images`; binding. ✓ bucket list shows it.
-- [ ] 5.2 **Me** · upload endpoint (10 MB cap, image types only, uuid keys) and image endpoint with cache headers. ✓ curl upload, then the URL opens in the browser.
-- [ ] 5.3 **Me** · Ctrl+V in the composer and on the note page uploads and shows a thumbnail; key stored on the note. ✓ **You** paste a screenshot, refresh.
-- [ ] 5.4 **Me** · drag and drop in both places with a drop highlight, file picker behind the image icon, remove button, thumbnails in row previews. ✓
-- [ ] 5.5 **Me** · thumbnail click opens a lightbox, Esc closes. Commit; You push.
+- [x] 5.1 **Me** · `wrangler r2 bucket create rogers-images`; binding. ✓ bucket list shows it.
+- [x] 5.2 **Me** · upload endpoint (10 MB cap, image types only, uuid keys) and image endpoint with cache headers. ✓ curl upload, then the URL opens in the browser.
+- [x] 5.3 **Me** · Ctrl+V in the composer and on the note page uploads and shows a thumbnail; key stored on the note. ✓ **You** paste a screenshot, refresh.
+- [x] 5.4 **Me** · drag and drop in both places with a drop highlight, file picker behind the image icon, remove button, thumbnails in row previews. ✓
+- [x] 5.5 **Me** · thumbnail click opens a lightbox, Esc closes. Commit; You push.
 
 ### Phase 6 · deploy (same sitting as phase 7)
 

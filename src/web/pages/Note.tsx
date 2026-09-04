@@ -6,7 +6,7 @@
  * never overwrite newer text. Saves go out one at a time and flush on blur, on
  * the way back, and when the tab is closed.
  *
- * Images arrive at plan step 5.3. */
+ * Pictures come in by paste, by drop, or through the image button. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router";
@@ -17,6 +17,8 @@ import { NoteSaver, draftKey, type SaveStatus } from "../lib/autosave";
 import { useApi } from "../lib/useApi";
 import { TopBar } from "../components/TopBar";
 import { AutoGrowTextarea } from "../components/AutoGrowTextarea";
+import { ImageStrip } from "../components/ImageStrip";
+import { ACCEPT_ATTRIBUTE, imageFiles, uploadImage } from "../lib/upload";
 import { Menu } from "../components/Menu";
 import { Skeleton, Toast } from "../components/Feedback";
 
@@ -63,10 +65,15 @@ function Editor({ note }: { note: NoteType }) {
 	const [title, setTitle] = useState(note.title);
 	const [body, setBody] = useState(note.body);
 	const [pinned, setPinned] = useState(note.pinnedAt !== null);
+	const [images, setImages] = useState<string[]>(note.images);
 	const [status, setStatus] = useState<SaveStatus>("idle");
+	const [uploading, setUploading] = useState(0);
+	const [uploadError, setUploadError] = useState<string | null>(null);
+	const [dragging, setDragging] = useState(false);
 
 	const saver = useRef<NoteSaver | null>(null);
-	const latest = useRef({ title: note.title, body: note.body });
+	const picker = useRef<HTMLInputElement>(null);
+	const latest = useRef({ title: note.title, body: note.body, images: note.images });
 
 	function change(patch: UpdateNoteBody) {
 		if (patch.title !== undefined) {
@@ -78,7 +85,27 @@ function Editor({ note }: { note: NoteType }) {
 			setBody(patch.body);
 		}
 		if (patch.pinned !== undefined) setPinned(patch.pinned);
+		if (patch.images !== undefined) {
+			latest.current.images = patch.images;
+			setImages(patch.images);
+		}
 		saver.current?.queue(patch);
+	}
+
+	/* Pictures: upload each, append its key, save through the same path as typing. */
+	async function addFiles(files: File[]) {
+		setUploadError(null);
+		for (const file of files) {
+			setUploading((n) => n + 1);
+			try {
+				const key = await uploadImage(file);
+				change({ images: [...latest.current.images, key] });
+			} catch (cause) {
+				setUploadError(cause instanceof Error ? cause.message : "Could not add the image.");
+			} finally {
+				setUploading((n) => n - 1);
+			}
+		}
 	}
 
 	const flush = useCallback(() => saver.current?.flush(), []);
@@ -114,7 +141,9 @@ function Editor({ note }: { note: NoteType }) {
 	async function goBack() {
 		await flush();
 		const empty =
-			latest.current.title.trim() === "" && latest.current.body.trim() === "";
+			latest.current.title.trim() === "" &&
+			latest.current.body.trim() === "" &&
+			latest.current.images.length === 0;
 		if (empty) {
 			try {
 				await apiFetch<NoteType>(`/api/notes/${note.id}`, { method: "DELETE" });
@@ -154,6 +183,10 @@ function Editor({ note }: { note: NoteType }) {
 					setBody(patch.body);
 				}
 				if (patch.pinned !== undefined) setPinned(patch.pinned);
+				if (patch.images !== undefined) {
+					latest.current.images = patch.images;
+					setImages(patch.images);
+				}
 				current.queue(patch);
 			} catch {
 				/* Unreadable parked text is not restorable; the server copy stands. */
@@ -180,12 +213,39 @@ function Editor({ note }: { note: NoteType }) {
 				trailing={
 					<div className="flex items-center gap-2">
 						<span className="text-sm text-faint" aria-live="polite">
-							{status === "saving" && "Saving"}
-							{status === "saved" && "Saved"}
-							{status === "error" && (
-								<span className="text-danger">Could not save</span>
+							{uploadError !== null ? (
+								<span className="text-danger">{uploadError}</span>
+							) : uploading > 0 ? (
+								"Uploading"
+							) : (
+								<>
+									{status === "saving" && "Saving"}
+									{status === "saved" && "Saved"}
+									{status === "error" && (
+										<span className="text-danger">Could not save</span>
+									)}
+								</>
 							)}
 						</span>
+						<button
+							type="button"
+							aria-label="Add image"
+							onClick={() => picker.current?.click()}
+							className="rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-text"
+						>
+							🖼
+						</button>
+						<input
+							ref={picker}
+							type="file"
+							accept={ACCEPT_ATTRIBUTE}
+							multiple
+							hidden
+							onChange={(event) => {
+								void addFiles([...(event.target.files ?? [])]);
+								event.target.value = "";
+							}}
+						/>
 						<button
 							type="button"
 							aria-label={pinned ? "Unpin" : "Pin"}
@@ -205,7 +265,30 @@ function Editor({ note }: { note: NoteType }) {
 				}
 			/>
 
-			<main className="mx-auto max-w-2xl px-4 py-6">
+			<main
+				onPaste={(event) => {
+					const files = imageFiles(event.clipboardData);
+					if (files.length > 0) {
+						event.preventDefault();
+						void addFiles(files);
+					}
+				}}
+				onDragOver={(event) => {
+					if (event.dataTransfer.types.includes("Files")) {
+						event.preventDefault();
+						setDragging(true);
+					}
+				}}
+				onDragLeave={() => setDragging(false)}
+				onDrop={(event) => {
+					event.preventDefault();
+					setDragging(false);
+					void addFiles(imageFiles(event.dataTransfer));
+				}}
+				className={`mx-auto max-w-2xl rounded-card border px-4 py-6 ${
+					dragging ? "border-accent" : "border-transparent"
+				}`}
+			>
 				<input
 					value={title}
 					dir="auto"
@@ -224,6 +307,15 @@ function Editor({ note }: { note: NoteType }) {
 					onBlur={() => void flush()}
 					className="min-h-40"
 				/>
+
+				{images.length > 0 && (
+					<div className="mt-4">
+						<ImageStrip
+							keys={images}
+							onRemove={(key) => change({ images: images.filter((k) => k !== key) })}
+						/>
+					</div>
+				)}
 			</main>
 		</>
 	);

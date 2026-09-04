@@ -23,5 +23,11 @@
 			"database_name": "rogers-db",
 			"database_id": "32967c7a-1e86-4ef2-9094-a7c0a08984ac"
 		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "IMAGES",
+			"bucket_name": "rogers-images"
+		}
 	]
 }

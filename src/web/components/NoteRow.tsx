@@ -5,12 +5,13 @@
  *
  * The row is a div with a covering link, so the pin and the menu can sit above
  * it as real buttons; a control nested inside a link is neither reliably
- * clickable nor announced properly. Thumbnails arrive at plan step 5.4. */
+ * clickable nor announced properly. */
 
 import { Link } from "react-router";
 import type { Note, NotePreview } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { Menu } from "./Menu";
+import { ImageStrip } from "./ImageStrip";
 
 export function NoteRow({
 	note,
@@ -73,7 +74,15 @@ export function NoteRow({
 					</span>
 				)}
 
-				{empty && <span className="block text-faint">Empty note</span>}
+				{empty && note.images.length === 0 && (
+					<span className="block text-faint">Empty note</span>
+				)}
+
+				{note.images.length > 0 && (
+					<div className={untitled && note.preview.trim() === "" ? "" : "mt-2"}>
+						<ImageStrip keys={note.images} size="sm" />
+					</div>
+				)}
 			</div>
 
 			{/* Chrome, top right whatever direction the text runs in. Hidden until

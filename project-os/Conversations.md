@@ -366,6 +366,22 @@ http://localhost:5173/settings/notifications
 Nothing on the existing pages changed.
 ~~~
 
+### 12b · A dashboard step always carries its direct link
+
+Whenever the owner has to do something in a web console, the reply gives the
+full address of that exact page, in its own fence, never a menu path to click
+through. Rotem asked for this on 2026-09-04 after being sent through a menu.
+Include the account id when the console needs it; his Cloudflare account id is
+`b7c38aacfa133975942d533daaa542bb`.
+
+~~~
+Enable R2 here:
+
+```
+https://dash.cloudflare.com/b7c38aacfa133975942d533daaa542bb/r2/overview
+```
+~~~
+
 ### 13 · A question for the owner goes last
 
 A question for the owner is the LAST thing in the reply, never buried mid-reply.

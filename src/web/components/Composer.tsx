@@ -6,14 +6,17 @@
  * with nothing in it discards the draft, which is the only place that knows
  * the difference between an empty note and a note that has not started.
  *
- * The image button in the bar and in the toolbar arrive at plan step 5.4. */
+ * Pictures come in by paste, by drop, or through the image button, and are
+ * uploaded at once; the note keeps their keys. */
 
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import type { CreateNoteBody, Note } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { onSessionExpired } from "../platform/session";
 import { NoteSaver, type SaveStatus } from "../lib/autosave";
+import { ACCEPT_ATTRIBUTE, imageFiles, uploadImage } from "../lib/upload";
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
+import { ImageStrip } from "./ImageStrip";
 
 /** What the page can ask the composer to do: the N shortcut opens it. */
 export type ComposerHandle = { open: () => void };
@@ -33,10 +36,15 @@ export function Composer({
 	const [title, setTitle] = useState("");
 	const [body, setBody] = useState("");
 	const [pinned, setPinned] = useState(false);
+	const [images, setImages] = useState<string[]>([]);
 	const [status, setStatus] = useState<SaveStatus>("idle");
+	const [uploading, setUploading] = useState(0);
+	const [uploadError, setUploadError] = useState<string | null>(null);
+	const [dragging, setDragging] = useState(false);
 
 	const root = useRef<HTMLDivElement>(null);
 	const bodyField = useRef<HTMLTextAreaElement>(null);
+	const picker = useRef<HTMLInputElement>(null);
 
 	/* The draft's identity. The id is made here, before anything is sent, so a
 	   create that is applied and then lost on the way back is recognised as the
@@ -45,7 +53,7 @@ export function Composer({
 	const saverRef = useRef<NoteSaver | null>(null);
 	const creatingRef = useRef<Promise<void> | null>(null);
 	/* Latest values, readable from inside async work without stale closures. */
-	const latest = useRef({ title: "", body: "", pinned: false });
+	const latest = useRef({ title: "", body: "", pinned: false, images: [] as string[] });
 
 	/* Create the note on the server once, then sync whatever was typed while
 	   the request was out. Returns the saver, or null while creation is still
@@ -74,6 +82,7 @@ export function Composer({
 				title: latest.current.title,
 				body: latest.current.body,
 				...(latest.current.pinned ? { pinned: true } : {}),
+				...(latest.current.images.length > 0 ? { images: latest.current.images } : {}),
 			});
 		})();
 
@@ -90,7 +99,11 @@ export function Composer({
 		return saverRef.current;
 	}, [projectId]);
 
-	function change(patch: { title?: string; body?: string; pinned?: boolean }) {
+	function change(patch: { title?: string; body?: string; pinned?: boolean; images?: string[] }) {
+		if (patch.images !== undefined) {
+			latest.current.images = patch.images;
+			setImages(patch.images);
+		}
 		if (patch.title !== undefined) {
 			latest.current.title = patch.title;
 			setTitle(patch.title);
@@ -114,14 +127,36 @@ export function Composer({
 		}
 	}
 
+	/* Pictures: upload each, append its key, and save through the same path as
+	   typing. The picker, a paste and a drop all end up here. */
+	async function addFiles(files: File[]) {
+		if (files.length === 0) return;
+		setOpen(true);
+		setUploadError(null);
+		for (const file of files) {
+			setUploading((n) => n + 1);
+			try {
+				const key = await uploadImage(file);
+				change({ images: [...latest.current.images, key] });
+			} catch (cause) {
+				setUploadError(cause instanceof Error ? cause.message : "Could not add the image.");
+			} finally {
+				setUploading((n) => n - 1);
+			}
+		}
+	}
+
 	const reset = useCallback(() => {
 		saverRef.current?.dispose();
 		saverRef.current = null;
 		idRef.current = crypto.randomUUID();
-		latest.current = { title: "", body: "", pinned: false };
+		latest.current = { title: "", body: "", pinned: false, images: [] };
 		setTitle("");
 		setBody("");
 		setPinned(false);
+		setImages([]);
+		setUploadError(null);
+		setDragging(false);
 		setStatus("idle");
 		setOpen(false);
 	}, []);
@@ -133,7 +168,9 @@ export function Composer({
 		if (saver !== null) {
 			await saver.flush();
 			const empty =
-				latest.current.title.trim() === "" && latest.current.body.trim() === "";
+				latest.current.title.trim() === "" &&
+				latest.current.body.trim() === "" &&
+				latest.current.images.length === 0;
 			if (empty) {
 				try {
 					await apiFetch<Note>(`/api/notes/${idRef.current}`, { method: "DELETE" });
@@ -187,22 +224,69 @@ export function Composer({
 		if (open) bodyField.current?.focus();
 	}, [open]);
 
+	/* The hidden file input behind both image buttons. */
+	const fileInput = (
+		<input
+			ref={picker}
+			type="file"
+			accept={ACCEPT_ATTRIBUTE}
+			multiple
+			hidden
+			onChange={(event) => {
+				void addFiles([...(event.target.files ?? [])]);
+				event.target.value = "";
+			}}
+		/>
+	);
+
 	if (!open) {
 		return (
-			<button
-				type="button"
-				onClick={() => setOpen(true)}
-				className="block w-full rounded-card border border-border bg-surface px-4 py-3 text-left text-muted shadow-raised hover:bg-surface-hover"
-			>
-				Take a note…
-			</button>
+			<div className="flex items-center rounded-card border border-border bg-surface shadow-raised">
+				<button
+					type="button"
+					onClick={() => setOpen(true)}
+					className="min-w-0 flex-1 rounded-card px-4 py-3 text-left text-muted hover:bg-surface-hover"
+				>
+					Take a note…
+				</button>
+				<button
+					type="button"
+					aria-label="Add image"
+					onClick={() => picker.current?.click()}
+					className="mr-2 rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-text"
+				>
+					🖼
+				</button>
+				{fileInput}
+			</div>
 		);
 	}
 
 	return (
 		<div
 			ref={root}
-			className="rounded-card border border-border bg-surface shadow-raised"
+			onPaste={(event) => {
+				const files = imageFiles(event.clipboardData);
+				if (files.length > 0) {
+					event.preventDefault();
+					void addFiles(files);
+				}
+			}}
+			onDragOver={(event) => {
+				if (event.dataTransfer.types.includes("Files")) {
+					event.preventDefault();
+					setDragging(true);
+				}
+			}}
+			onDragLeave={() => setDragging(false)}
+			onDrop={(event) => {
+				event.preventDefault();
+				setDragging(false);
+				void addFiles(imageFiles(event.dataTransfer));
+			}}
+			className={`rounded-card border bg-surface shadow-raised ${
+				dragging ? "border-accent" : "border-border"
+			}`}
 		>
 			<div className="flex items-start gap-2 px-4 pt-3">
 				<input
@@ -234,10 +318,27 @@ export function Composer({
 					aria-label="Note"
 					onChange={(event) => change({ body: event.target.value })}
 				/>
+				{images.length > 0 && (
+					<div className="mt-3">
+						<ImageStrip
+							keys={images}
+							onRemove={(key) => change({ images: images.filter((k) => k !== key) })}
+						/>
+					</div>
+				)}
 			</div>
 
 			<div className="flex items-center justify-between px-2 pb-2">
 				<div className="flex items-center gap-1">
+					<button
+						type="button"
+						aria-label="Add image"
+						onClick={() => picker.current?.click()}
+						className="rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-text"
+					>
+						🖼
+					</button>
+					{fileInput}
 					<button
 						type="button"
 						aria-label="Delete"
@@ -247,9 +348,17 @@ export function Composer({
 						🗑
 					</button>
 					<span className="px-1 text-sm text-faint">
-						{status === "saving" && "Saving"}
-						{status === "saved" && "Saved"}
-						{status === "error" && <span className="text-danger">Could not save</span>}
+						{uploadError !== null ? (
+							<span className="text-danger">{uploadError}</span>
+						) : uploading > 0 ? (
+							"Uploading"
+						) : (
+							<>
+								{status === "saving" && "Saving"}
+								{status === "saved" && "Saved"}
+								{status === "error" && <span className="text-danger">Could not save</span>}
+							</>
+						)}
 					</span>
 				</div>
 				<button
