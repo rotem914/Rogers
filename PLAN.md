@@ -305,9 +305,9 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 
 ### Phase 7 · login and install
 
-- [ ] 7.1 **You** · dashboard: Workers & Pages → rogers → Settings → Domains & Routes → workers.dev → Enable Cloudflare Access. Then Zero Trust → Access → Applications → rogers: policy Allow, Emails = yours, session duration 1 month. A custom hostname is possible if you own a domain on Cloudflare. ✓
+- [x] 7.1 **You** · dashboard: Workers & Pages → rogers → Settings → Domains & Routes → workers.dev → Enable Cloudflare Access. Then Zero Trust → Access → Applications → rogers: policy Allow, Emails = yours, session duration 1 month. A custom hostname is possible if you own a domain on Cloudflare. ✓
 - [ ] 7.2 **You** · incognito, open the URL, email code, you are in. ✓ the API path without login redirects to the login page. Then revoke the session in Zero Trust and click inside the app: you land on the login page, not on a broken screen.
-- [ ] 7.3 **Me** · PWA manifest with the credentials flag, dark theme colors, icons, and the minimal offline-page service worker from section 6; deploy. ✓ **You** Edge → Install app → Rogers opens as a Windows window with its own taskbar icon. Airplane mode, open the installed app: the dark offline page, not a browser error.
+- [x] 7.3 **Me** · PWA manifest with the credentials flag, dark theme colors, icons, and the minimal offline-page service worker from section 6; deploy. ✓ **You** Edge → Install app → Rogers opens as a Windows window with its own taskbar icon. Airplane mode, open the installed app: the dark offline page, not a browser error.
 
 ### Phase 8 · V1.1, only if native capabilities are missed: Windows desktop with Tauri v2
 

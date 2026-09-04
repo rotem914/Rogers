@@ -16,7 +16,12 @@
 			}
 		</style>
 
-		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
+		<!-- The manifest is fetched WITH the login cookie. Cloudflare Access sits in
+		     front of it, and a manifest fetched without credentials gets the login
+		     page instead, which makes the app silently uninstallable. -->
+		<link rel="manifest" href="/manifest.webmanifest" crossorigin="use-credentials" />
+		<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+		<link rel="apple-touch-icon" href="/icons/icon-192.png" />
 		<title>Rogers</title>
 	</head>
 

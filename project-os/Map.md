@@ -53,7 +53,7 @@ Rogers/
 │   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in
 │   │   └── styles/        # tokens.css, the whole palette
 │   └── shared/            # types both sides import
-├── public/                # served as-is
+├── public/                # served as-is: manifest.webmanifest, sw.js (offline page only), offline.html, icons/
 ├── notes/                 # free-standing documents
 ├── project-os/            # the process docs, hooks installer, rotation scripts
 ├── .claude/               # settings.local.json with the hooks; personal, not committed
