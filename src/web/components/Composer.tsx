@@ -44,7 +44,6 @@ export function Composer({
 
 	const root = useRef<HTMLDivElement>(null);
 	const titleField = useRef<HTMLInputElement>(null);
-	const bodyField = useRef<HTMLTextAreaElement>(null);
 	const picker = useRef<HTMLInputElement>(null);
 
 	/* The draft's identity. The id is made here, before anything is sent, so a
@@ -314,7 +313,6 @@ export function Composer({
 
 			<div className="px-4 py-2">
 				<AutoGrowTextarea
-					ref={bodyField}
 					value={body}
 					placeholder="Take a note…"
 					aria-label="Note"
