@@ -196,6 +196,19 @@ Passed: checks green, the edit rendered, the record updated, the change survived
 reload. Console: no new errors.
 ```
 
+## 10b. Never test non-ASCII text through the shell on this machine
+
+Rogers is written in Hebrew and English together, so text handling is not a side
+issue, it is the product. But a curl command carrying Hebrew through this
+machine arrives at the server as question marks: the shell replaces every
+non-ASCII character before the request is sent. The database then stores
+`3F3F`, and the check looks like a real encoding bug in the app.
+
+So any check involving Hebrew, emoji, or any non-ASCII input is run **from the
+browser**, through the browser tool, never through a shell command. Proven on
+2026-09-04 at plan step 3.3: the same text was mangled through curl and came
+back perfect through the browser.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

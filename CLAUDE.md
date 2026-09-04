@@ -412,10 +412,24 @@ your reasoning inside it too.
 ### 22. One action at a time, one plan step at a time
 
 Rotem watches the work as it happens. Never spawn subagents, never fan out, and
-never fire several tool calls in parallel: one call, then the next. Build only
-the `PLAN.md` step that was approved, then stop and wait for the next go. When a
-step ends, tick its checkbox in `PLAN.md` in the same change. He corrected the
-parallel calls once, on 2026-09-04; it is a rule, not a preference.
+never fire several tool calls in parallel: one call, then the next. He corrected
+the parallel calls once, on 2026-09-04; it is a rule, not a preference.
+
+**Run continuously through `PLAN.md`, one step at a time, and keep going.** He
+lifted the per-step approval on 2026-09-04: work each step in order, tick its
+checkbox in the same change, report it, and start the next one without waiting.
+
+Stop and hand back only when one of these is true:
+
+- something is actually wrong: a check fails, a finding needs his verdict, or a
+  step does not do what the plan says it should;
+- the step is his: a dashboard click, an install on his machine, a push;
+- the action reaches outside this machine in a way he has not already approved.
+  Deploying is the clear case, because the address is public until Access is on,
+  so stop before plan step 6.1 and ask.
+
+Everything else continues. Asking permission for work he has already approved
+costs him a message and buys nothing.
 
 ### 23. Name the model and the effort before every task
 

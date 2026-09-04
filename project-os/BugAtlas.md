@@ -36,3 +36,4 @@ answers a search.
 
 | # | Symptom | Root cause | The fix that holds | Times bitten | Where recorded |
 |---|---|---|---|---|---|
+| 1 | The app bounces to the Cloudflare Access login for no reason, and whatever was on screen is gone | An `/api` route answered with something that is not JSON. The client treats a non-JSON answer under `/api` as proof that Access served its login page, so a plain-text crash or a framework default page is read as an expired session and triggers a reload | Every answer under `/api` is JSON, successes included. `app.onError` and `app.notFound` in `src/api/index.ts` guarantee it even for an unpredicted crash. Two traps to avoid: never let a route fall through to a framework default, and never answer 204 No Content, because an empty body carries no content type and reads exactly like the login page | 1x | History 2026-09-04, plan step 3.1 |

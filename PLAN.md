@@ -271,11 +271,11 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 
 ### Phase 3 · API
 
-- [ ] 3.1 **Me** · list and create projects. ✓ curl create, then list shows it.
-- [ ] 3.2 **Me** · update and soft-delete projects. ✓ curl.
-- [ ] 3.3 **Me** · list (previews, pinned first) and create notes per project. ✓ curl.
-- [ ] 3.4 **Me** · get, update (incl. pinned), soft-delete a single note. ✓ curl.
-- [ ] 3.5 **Me** · input checks with 400 and 404 responses. ✓ a bad body gives 400. Commit.
+- [x] 3.1 **Me** · list and create projects. ✓ curl create, then list shows it.
+- [x] 3.2 **Me** · update and soft-delete projects. ✓ curl.
+- [x] 3.3 **Me** · list (previews, pinned first) and create notes per project. ✓ curl.
+- [x] 3.4 **Me** · get, update (incl. pinned), soft-delete a single note. ✓ curl.
+- [x] 3.5 **Me** · input checks with 400 and 404 responses. ✓ a bad body gives 400. Commit.
 
 ### Phase 4 · frontend
 

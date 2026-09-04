@@ -71,6 +71,7 @@ Mistakes in HOW you worked:
 |---|---|---|
 | 2026-09-04 | Fired several file edits in parallel; Rotem read it as work spread across agents | `CLAUDE.md` working rules, rule 22 |
 | 2026-09-04 | Pushed to main myself; the install took "I push" from the plan by silence instead of asking | `CLAUDE.md` Go commit, step 7 |
+| 2026-09-04 | Stopped for approval after every plan step once he had made clear he wanted the work to run | `CLAUDE.md` working rules, rule 22 |
 
 ## Retired
 
