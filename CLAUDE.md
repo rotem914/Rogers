@@ -556,8 +556,9 @@ Commit everything accumulated up to now, across sessions, not only this chat.
    `dist/`, `node_modules/`, `.tmp/`, `.claude/settings.local.json`.
 6. Commit with a clear message covering the full scope, on main. No task
    branches; Rotem confirmed this on 2026-09-04.
-7. Push to origin main after the commit. Rotem said the assistant pushes,
-   in PLAN.md and again on 2026-09-04.
+7. Stop after the commit. Rotem pushes, always, from GitHub Desktop or his
+   terminal. Never run `git push`; he corrected this on 2026-09-04 after the
+   install had taken "I push" from the plan by silence.
 
 ### `Backlog`
 

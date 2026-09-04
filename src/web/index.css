@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+
+/* Dark only. color-scheme is what turns the native furniture dark: scrollbars,
+   text selection, form controls, the caret. Without it a dark page still has
+   white scrollbars. */
+:root {
+	color-scheme: dark;
+}
+
+html,
+body {
+	background: var(--color-bg);
+	color: var(--color-text);
+}
+
+body {
+	margin: 0;
+	font-family:
+		ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial,
+		"Noto Sans Hebrew", sans-serif;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* Hebrew and English mix in every note, so text aligns per paragraph rather
+   than per field. Applied where user text is rendered or edited. */
+.bidi {
+	unicode-bidi: plaintext;
+}
+
+/* One focus ring for the whole app, visible against every surface. */
+:focus-visible {
+	outline: 2px solid var(--color-accent);
+	outline-offset: 2px;
+}

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+		<!-- Dark only. Both lines run before any stylesheet, so the browser paints
+		     the dark ground on the first frame instead of a white flash.
+		     The two hex values below are the one place --color-bg is repeated
+		     outside src/web/styles/tokens.css. Change that token, change these. -->
+		<meta name="color-scheme" content="dark" />
+		<meta name="theme-color" content="#17181a" />
+		<style>
+			html {
+				background: #17181a;
+			}
+		</style>
+
+		<link rel="icon" type="image/svg+xml" href="/vite.svg" />
+		<title>Rogers</title>
+	</head>
+
+	<body>
+		<div id="root"></div>
+		<script type="module" src="/src/web/main.tsx"></script>
+	</body>
+</html>

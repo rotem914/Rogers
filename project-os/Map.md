@@ -34,6 +34,26 @@ one Cloudflare Worker: Hono API + React/Vite SPA served as static assets · D1 +
 Rogers/
 ├── CLAUDE.md              # entry file, read first
 ├── PLAN.md                # the build plan: approval-gated steps and the review log
+├── index.html             # page shell; loads src/web/main.tsx
+├── vite.config.ts         # React plugin + the Cloudflare plugin
+├── wrangler.json          # the Worker: main, assets dir, SPA fallback, /api/* to the Worker
+├── tsconfig.json          # solution file; references app / node / worker
+├── tsconfig.app.json      # src/web + src/shared
+├── tsconfig.worker.json   # src/api + src/shared
+├── tsconfig.node.json     # build tooling
+├── eslint.config.js
+├── worker-configuration.d.ts   # generated; rerun npm run cf-typegen after wrangler.json changes
+├── src/
+│   ├── api/               # the Worker: Hono routes under /api
+│   ├── web/               # the SPA
+│   │   ├── pages/         # one file per address: Home, Project, Note
+│   │   ├── components/    # shared UI, starting with the top bar
+│   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
+│   │   ├── lib/           # useApi, the read hook
+│   │   └── styles/        # tokens.css, the whole palette
+│   └── shared/            # types both sides import
+├── public/                # served as-is
+├── notes/                 # free-standing documents
 ├── project-os/            # the process docs, hooks installer, rotation scripts
 ├── .claude/               # settings.local.json with the hooks; personal, not committed
 ├── .tmp/                  # scratch, gitignored
@@ -41,8 +61,9 @@ Rogers/
 └── .gitattributes
 ```
 
-No application code yet. `src/`, `migrations/` and `desktop/` arrive with the plan
-steps that create them, and this tree is updated in the same change.
+`migrations/` and `desktop/` arrive with the plan steps that create them, and this
+tree is updated in the same change. `src/web` still holds the template's own page;
+Rogers screens arrive at plan step 1.3 and phase 4.
 
 ## Data
 
@@ -61,3 +82,8 @@ anything.
 |---|---|---|
 | Process | `CLAUDE.md`, `project-os/*` | The kit. Rules change only through the workflow's documentation routing. |
 | Plan | `PLAN.md` | Rotem's approval-gated build plan; its checkboxes track progress. |
+| API | `src/api/*`, `wrangler.json` | The Worker. Every route lives under `/api`; `run_worker_first` sends those to the Worker before the assets. |
+| Web | `src/web/pages/*`, `src/web/components/*`, `index.html` | The screens. Any address that is not `/api/*` returns the app shell. |
+| Platform | `src/web/platform/*` | Where the API lives, what an expired Access session looks like, and web versus Tauri. Every request goes through `api-client.ts`; no screen calls `fetch` itself. |
+| Look | `src/web/styles/tokens.css`, `src/web/index.css` | The palette and the base sheet. A raw hex anywhere else is a bug. |
+| Shared | `src/shared/*` | Types both sides import. One definition only; never a second copy under api or web. |

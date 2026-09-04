@@ -245,22 +245,22 @@ Steps:
 
 Each line is one step with a done-when check (✓). Work stops after each step until approved. V1 = phases 0 to 7 and ends with the installed PWA. Phase 8 is V1.1 and starts only if, after living with the PWA, native capabilities such as a global hotkey, a tray icon, or run at startup are actually missed.
 
-Execution rules for Me: every wrangler command runs non-interactively, with `--yes` / `-y` where the command supports it, in a shell without a TTY so wrangler auto-confirms the rest. Any prompt that still needs a human answer is handed to You instead of waiting. The account's workers.dev subdomain must exist before 6.1 so the first deploy does not prompt. Rotem starts every dev server himself, `npm run dev` in his terminal, and I drive it; I never start one, per CLAUDE.md rule 16.
+Execution rules for Me: every wrangler command runs non-interactively, with `--yes` / `-y` where the command supports it, in a shell without a TTY so wrangler auto-confirms the rest. Any prompt that still needs a human answer is handed to You instead of waiting. The account's workers.dev subdomain must exist before 6.1 so the first deploy does not prompt. Rotem starts every dev server himself, `npm run dev` in his terminal, and I drive it; I never start one, per CLAUDE.md rule 16. Pushing to GitHub is Rotem's alone; I commit, he pushes.
 
 ### Phase 0 · prerequisites
 
 - [x] 0.1 **Me** · this file exists in the repo root. ✓ You read it and say go.
-- [ ] 0.2 **You** · Cloudflare account exists; run `npx wrangler login` in your own terminal. Also make sure the account has a workers.dev subdomain (Workers & Pages → Overview). ✓ `npx wrangler whoami` prints your account.
+- [x] 0.2 **You** · Cloudflare account exists; run `npx wrangler login` in your own terminal. Also make sure the account has a workers.dev subdomain (Workers & Pages → Overview). ✓ `npx wrangler whoami` prints your account.
 - [x] 0.3 **Me** · `git init`, `.gitignore` (node_modules, dist, .wrangler, .dev.vars), first commit. ✓ one commit in the log (a244ab1).
 - [x] 0.4 **Me** · create the GitHub repo with `gh` and push. If `gh` is not logged in, You run `gh auth login` first. ✓ repo page opens. Done 2026-09-04: Rotem created github.com/rotem914/Rogers himself; main pushed.
 
 ### Phase 1 · skeleton
 
-- [ ] 1.1 **Me** · scaffold with the Cloudflare React + Vite + Workers template. ✓ You start `npm run dev`; the template page shows on localhost:5173.
-- [ ] 1.2 **Me** · restructure into `src/api` (Hono), `src/web`, `src/shared`. Worker config: assets dir, SPA fallback, `/api/*` always routed to the Worker. ✓ `/api/health` returns JSON, any other path returns the app shell.
-- [ ] 1.3 **Me** · dark-only foundation: tokens, root color-scheme, Tailwind v4, theme-color meta, app shell with a top bar. ✓ dark page, dark scrollbars, no white flash on reload.
-- [ ] 1.4 **Me** · routes Home `/`, Project `/p/:id`, Note `/n/:id` as placeholders; API client module with the Access expiry handling from section 6; small data hook (loading, error, refetch); platform shim. ✓ reloading a note URL works; a mocked redirect from the API triggers the reload path instead of a crash.
-- [ ] 1.5 **Me** · commit and push.
+- [x] 1.1 **Me** · scaffold with the Cloudflare React + Vite + Workers template. ✓ You start `npm run dev`; the template page shows on localhost:5173.
+- [x] 1.2 **Me** · restructure into `src/api` (Hono), `src/web`, `src/shared`. Worker config: assets dir, SPA fallback, `/api/*` always routed to the Worker. ✓ `/api/health` returns JSON, any other path returns the app shell.
+- [x] 1.3 **Me** · dark-only foundation: tokens, root color-scheme, Tailwind v4, theme-color meta, app shell with a top bar. ✓ dark page, dark scrollbars, no white flash on reload.
+- [x] 1.4 **Me** · routes Home `/`, Project `/p/:id`, Note `/n/:id` as placeholders; API client module with the Access expiry handling from section 6; small data hook (loading, error, refetch); platform shim. ✓ reloading a note URL works; a mocked redirect from the API triggers the reload path instead of a crash.
+- [x] 1.5 **Me** · commit; You push.
 
 ### Phase 2 · database
 
@@ -288,7 +288,7 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 - [ ] 4.7 **Me** · pin: PINNED and OTHERS sections, hover pin on rows, pin in the composer. ✓ pin a note, refresh, it stays in PINNED.
 - [ ] 4.8 **Me** · archive from the note menu and a row menu; empty note discarded on back. ✓
 - [ ] 4.9 **Me** · keyboard: N focuses the composer, Esc closes it or goes back. Optional.
-- [ ] 4.10 **Me** · empty states, loading skeletons, error toast. Commit and push.
+- [ ] 4.10 **Me** · empty states, loading skeletons, error toast. Commit; You push.
 
 ### Phase 5 · images
 
@@ -296,12 +296,12 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 - [ ] 5.2 **Me** · upload endpoint (10 MB cap, image types only, uuid keys) and image endpoint with cache headers. ✓ curl upload, then the URL opens in the browser.
 - [ ] 5.3 **Me** · Ctrl+V in the composer and on the note page uploads and shows a thumbnail; key stored on the note. ✓ **You** paste a screenshot, refresh.
 - [ ] 5.4 **Me** · drag and drop in both places with a drop highlight, file picker behind the image icon, remove button, thumbnails in row previews. ✓
-- [ ] 5.5 **Me** · thumbnail click opens a lightbox, Esc closes. Commit and push.
+- [ ] 5.5 **Me** · thumbnail click opens a lightbox, Esc closes. Commit; You push.
 
 ### Phase 6 · deploy (same sitting as phase 7)
 
 - [ ] 6.1 **Me** · `npm run deploy`. ✓ **You** open the workers.dev URL: the app shell loads and `/api/health` answers. Sanity check only, create nothing. Go straight to phase 7.
-- [ ] 6.2 **Me** · deploy script in package.json, push. Optional later: GitHub Actions deploy on push, needs an API token You create.
+- [ ] 6.2 **Me** · deploy script in package.json, commit; You push. Optional later: GitHub Actions deploy on push, needs an API token You create.
 
 ### Phase 7 · login and install
 

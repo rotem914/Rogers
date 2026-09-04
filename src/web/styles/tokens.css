@@ -1,0 +1,38 @@
+/* Rogers palette. Dark only, by design: there is no light theme, no toggle,
+   and no prefers-color-scheme query anywhere in this project.
+
+   Every colour in the app comes from a token here. A raw hex in a component is
+   a bug, because it cannot be changed once and it drifts from the rest.
+
+   Tailwind v4 turns each token into a utility: --color-surface becomes
+   bg-surface, text-surface, border-surface. */
+
+@theme {
+	/* Ground and surfaces, darkest to lightest. */
+	--color-bg: #17181a; /* the page itself */
+	--color-surface: #222326; /* cards, the composer, the top bar */
+	--color-surface-hover: #2a2b2f; /* a row or card under the pointer */
+	--color-border: #3a3c40; /* hairlines; the only separator we use */
+
+	/* Type. */
+	--color-text: #e6e7e9; /* body and titles */
+	--color-muted: #9aa0a6; /* secondary lines, placeholders, counts */
+	--color-faint: #888d92; /* section labels such as PINNED */
+	/* faint is measured, not picked by eye: 5.31 on bg and 4.69 on surface, so it
+	   clears 4.5 as small uppercase text. Do not darken it. */
+
+	/* Accent, warm yellow, the pin and the focus ring. */
+	--color-accent: #f2c744;
+	--color-accent-ink: #17181a; /* text on an accent fill */
+	--color-danger: #f28b82; /* destructive actions and error text */
+
+	/* Shape. */
+	--radius-card: 8px;
+	--radius-pill: 999px;
+
+	/* The one elevation we use, for the expanded composer. */
+	--shadow-raised: 0 1px 2px rgb(0 0 0 / 0.3), 0 2px 8px rgb(0 0 0 / 0.25);
+
+	/* The top bar height, shared by the bar and by sticky offsets below it. */
+	--spacing-topbar: 56px;
+}
