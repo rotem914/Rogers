@@ -300,8 +300,8 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 
 ### Phase 6 · deploy (same sitting as phase 7)
 
-- [ ] 6.1 **Me** · `npm run deploy`. ✓ **You** open the workers.dev URL: the app shell loads and `/api/health` answers. Sanity check only, create nothing. Go straight to phase 7.
-- [ ] 6.2 **Me** · deploy script in package.json, commit; You push. Optional later: GitHub Actions deploy on push, needs an API token You create.
+- [x] 6.1 **Me** · `npm run deploy`. ✓ **You** open the workers.dev URL: the app shell loads and `/api/health` answers. Sanity check only, create nothing. Go straight to phase 7.
+- [x] 6.2 **Me** · deploy script in package.json, commit; You push. Optional later: GitHub Actions deploy on push, needs an API token You create.
 
 ### Phase 7 · login and install
 
