@@ -4,24 +4,38 @@
  * the app name, a project or a note shows a way back. Keeping it per screen
  * means a back arrow never has to be threaded through a shared layout. */
 
-import type { ReactNode } from "react";
+import type { MouseEvent, ReactNode } from "react";
 import { Link } from "react-router";
 
 type TopBarProps = {
 	/** Where the back arrow goes. Omit it on Home, which is the root. */
 	backTo?: string;
+	/**
+	 * Run instead of navigating, for a screen that has to save first. It gets
+	 * to navigate itself when it is done. Middle click and modifier clicks are
+	 * left to the browser, so opening in a new tab still works.
+	 */
+	onBack?: () => void;
 	/** The title text; a screen with nothing to say leaves it out. */
 	title: ReactNode;
 	/** Anything that sits at the right edge, such as a saved indicator. */
 	trailing?: ReactNode;
 };
 
-export function TopBar({ backTo, title, trailing }: TopBarProps) {
+export function TopBar({ backTo, onBack, title, trailing }: TopBarProps) {
+	function handleBack(event: MouseEvent<HTMLAnchorElement>) {
+		if (onBack === undefined) return;
+		if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+		event.preventDefault();
+		onBack();
+	}
+
 	return (
 		<header className="sticky top-0 z-10 flex h-topbar items-center gap-3 border-b border-border bg-surface px-4">
 			{backTo !== undefined && (
 				<Link
 					to={backTo}
+					onClick={handleBack}
 					aria-label="Back"
 					className="-ml-2 rounded-card px-2 py-1 text-muted hover:bg-surface-hover hover:text-text"
 				>

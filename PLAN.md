@@ -279,16 +279,16 @@ Execution rules for Me: every wrangler command runs non-interactively, with `--y
 
 ### Phase 4 · frontend
 
-- [ ] 4.1 **Me** · Home: project tiles from the API plus a "+" tile with inline name input. ✓ **You** create a project, refresh, it is still there.
-- [ ] 4.2 **Me** · tile menu: rename, color, archive. ✓ You try each.
-- [ ] 4.3 **Me** · Project page: back arrow, inline rename, centered list of rows with previews, newest first. ✓ rows render from the API.
-- [ ] 4.4 **Me** · composer: collapsed bar, expand and collapse with Close and click-outside. ✓ click expands with focus in the body, Close collapses.
-- [ ] 4.5 **Me** · composer persistence: draft on first change, serialized and coalesced autosave, discard if empty. ✓ **You** type, Close, the row is at the top. Open, Close without typing, nothing added.
-- [ ] 4.6 **Me** · Note page: back arrow, title and body editing, serialized and coalesced autosave with saved indicator, flush on blur and on back, per-paragraph bidi alignment, pin in the header. ✓ **You** type Hebrew and English paragraphs, wait a second, refresh. Then type fast while a save is in flight and refresh: the last text wins.
-- [ ] 4.7 **Me** · pin: PINNED and OTHERS sections, hover pin on rows, pin in the composer. ✓ pin a note, refresh, it stays in PINNED.
-- [ ] 4.8 **Me** · archive from the note menu and a row menu; empty note discarded on back. ✓
-- [ ] 4.9 **Me** · keyboard: N focuses the composer, Esc closes it or goes back. Optional.
-- [ ] 4.10 **Me** · empty states, loading skeletons, error toast. Commit; You push.
+- [x] 4.1 **Me** · Home: project tiles from the API plus a "+" tile with inline name input. ✓ **You** create a project, refresh, it is still there.
+- [x] 4.2 **Me** · tile menu: rename, color, archive. ✓ You try each.
+- [x] 4.3 **Me** · Project page: back arrow, inline rename, centered list of rows with previews, newest first. ✓ rows render from the API.
+- [x] 4.4 **Me** · composer: collapsed bar, expand and collapse with Close and click-outside. ✓ click expands with focus in the body, Close collapses.
+- [x] 4.5 **Me** · composer persistence: draft on first change, serialized and coalesced autosave, discard if empty. ✓ **You** type, Close, the row is at the top. Open, Close without typing, nothing added.
+- [x] 4.6 **Me** · Note page: back arrow, title and body editing, serialized and coalesced autosave with saved indicator, flush on blur and on back, per-paragraph bidi alignment, pin in the header. ✓ **You** type Hebrew and English paragraphs, wait a second, refresh. Then type fast while a save is in flight and refresh: the last text wins.
+- [x] 4.7 **Me** · pin: PINNED and OTHERS sections, hover pin on rows, pin in the composer. ✓ pin a note, refresh, it stays in PINNED.
+- [x] 4.8 **Me** · archive from the note menu and a row menu; empty note discarded on back. ✓
+- [x] 4.9 **Me** · keyboard: N focuses the composer, Esc closes it or goes back. Optional.
+- [x] 4.10 **Me** · empty states, loading skeletons, error toast. Commit; You push.
 
 ### Phase 5 · images
 

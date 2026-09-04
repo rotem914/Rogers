@@ -48,9 +48,9 @@ Rogers/
 │   ├── api/               # the Worker: Hono routes under /api
 │   ├── web/               # the SPA
 │   │   ├── pages/         # one file per address: Home, Project, Note
-│   │   ├── components/    # shared UI, starting with the top bar
+│   │   ├── components/    # TopBar, ProjectTile, NoteRow, Composer, Menu, Feedback, AutoGrowTextarea
 │   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
-│   │   ├── lib/           # useApi, the read hook
+│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver
 │   │   └── styles/        # tokens.css, the whole palette
 │   └── shared/            # types both sides import
 ├── public/                # served as-is
@@ -87,6 +87,7 @@ anything.
 | Schema | `migrations/*.sql` | The only way the database shape changes. Additive only: a migration never drops a column or rewrites a row. |
 | API | `src/api/*`, `wrangler.json` | The Worker. Every route lives under `/api`; `run_worker_first` sends those to the Worker before the assets. |
 | Web | `src/web/pages/*`, `src/web/components/*`, `index.html` | The screens. Any address that is not `/api/*` returns the app shell. |
+| Saving | `src/web/lib/autosave.ts` | The only code that sends a note save. One request in flight per note, later edits coalesced, answers never written back into the editor, unsaved text parked on dispose. Both the composer and the note page go through it; nothing else may call PATCH on a note. |
 | Platform | `src/web/platform/*` | Where the API lives, what an expired Access session looks like, and web versus Tauri. Every request goes through `api-client.ts`; no screen calls `fetch` itself. |
 | Look | `src/web/styles/tokens.css`, `src/web/index.css` | The palette and the base sheet. A raw hex anywhere else is a bug. |
 | Shared | `src/shared/*` | Types both sides import. One definition only; never a second copy under api or web. |
