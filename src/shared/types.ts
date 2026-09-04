@@ -73,6 +73,17 @@ export type UpdateProjectBody = {
 	color?: string | null;
 };
 
+/**
+ * The whole list of project ids, in the order Home should show them.
+ *
+ * The whole list rather than the one that moved: a position only means
+ * something next to its neighbours, so sending a single id would leave the
+ * Worker guessing what the rest of the grid looks like.
+ */
+export type ReorderProjectsBody = {
+	ids: string[];
+};
+
 export type CreateNoteBody = {
 	id?: string;
 	title?: string;

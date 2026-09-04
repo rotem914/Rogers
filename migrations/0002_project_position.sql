@@ -1,0 +1,16 @@
+-- Rogers, second migration: where a project sits on Home.
+--
+-- Additive, like every migration here. It adds one nullable column and
+-- rewrites nothing: every project that exists keeps its row untouched, and
+-- reads back exactly as it did before.
+--
+-- Null means "never dragged". The list query sorts projects that have a
+-- position first and falls back to created_at for the rest, so a database
+-- where nobody has ever reordered anything keeps the creation order it has
+-- always had, and a project made after a reorder lands at the end where the
+-- new tile has always appeared.
+--
+-- No default on purpose. A default would give every existing row the same
+-- position and make the order arbitrary; null keeps the question unanswered
+-- until someone answers it by dragging.
+ALTER TABLE projects ADD COLUMN position INTEGER;

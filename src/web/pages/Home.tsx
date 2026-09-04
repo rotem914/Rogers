@@ -1,7 +1,15 @@
-/* Home: every project as a tile, plus one tile that makes a new one. */
+/* Home: every project as a tile, plus one tile that makes a new one.
+ *
+ * Tiles are dragged into the order they should sit in. The whole tile is the
+ * handle, so there is no grip to find, and the grid rearranges under the mouse
+ * rather than only after the drop. */
 
-import { useState } from "react";
-import type { CreateProjectBody, Project } from "../../shared/types";
+import { useRef, useState, type DragEvent } from "react";
+import type {
+	CreateProjectBody,
+	Project,
+	ReorderProjectsBody,
+} from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { useApi } from "../lib/useApi";
 import { TopBar } from "../components/TopBar";
@@ -11,6 +19,82 @@ import { TileSkeleton, Toast } from "../components/Feedback";
 export function Home() {
 	const { data, loading, error, refetch } = useApi<Project[]>("/api/projects");
 
+	/* The order being dragged: in state so the grid redraws, and in a ref so the
+	   drop handler can read what the last hover wrote, because state is a render
+	   behind by then. An empty list means "however the server sent them". */
+	const [order, setOrder] = useState<string[]>([]);
+	const orderRef = useRef<string[]>([]);
+	const [dragging, setDragging] = useState<string | null>(null);
+	const draggedRef = useRef<string | null>(null);
+	const droppedRef = useRef(false);
+	const [orderFailed, setOrderFailed] = useState(false);
+
+	const projects = arrange(data ?? [], order);
+
+	function showOrder(next: string[]) {
+		orderRef.current = next;
+		setOrder(next);
+	}
+
+	function startDrag(event: DragEvent<HTMLDivElement>, id: string) {
+		/* A drag begun inside the rename field would carry the tile off instead
+		   of selecting the text being edited. */
+		if (event.target instanceof HTMLInputElement) {
+			event.preventDefault();
+			return;
+		}
+
+		draggedRef.current = id;
+		droppedRef.current = false;
+		setDragging(id);
+		/* Seeded from what is on screen, so a preview built on top of it can never
+		   disagree with the grid the drag started from. */
+		showOrder(projects.map((project) => project.id));
+		event.dataTransfer.effectAllowed = "move";
+		/* Firefox starts no drag at all unless the drag carries something. */
+		event.dataTransfer.setData("text/plain", id);
+	}
+
+	/* Hovering a tile moves the dragged one into its place, so the grid shows the
+	   result while the mouse is still down instead of after it is let go. */
+	function dragOnto(id: string) {
+		const dragged = draggedRef.current;
+		if (dragged === null) return;
+		const next = moved(orderRef.current, dragged, id);
+		if (next !== null) showOrder(next);
+	}
+
+	async function drop() {
+		droppedRef.current = true;
+		draggedRef.current = null;
+		setDragging(null);
+
+		const ids = orderRef.current;
+		if (ids.length === 0) return;
+
+		setOrderFailed(false);
+		try {
+			const body: ReorderProjectsBody = { ids };
+			await apiFetch<Project[]>("/api/projects/order", {
+				method: "PUT",
+				body: JSON.stringify(body),
+			});
+			refetch();
+		} catch {
+			/* Back to the order the server still holds. A grid showing an order
+			   that was never saved is worse than one that did not move. */
+			showOrder([]);
+			setOrderFailed(true);
+		}
+	}
+
+	function endDrag() {
+		draggedRef.current = null;
+		setDragging(null);
+		/* Let go outside the grid, or cancelled with Escape: put the preview back. */
+		if (!droppedRef.current) showOrder([]);
+	}
+
 	return (
 		<>
 			<TopBar title="Rogers" />
@@ -18,13 +102,25 @@ export function Home() {
 			<main className="mx-auto max-w-3xl px-4 py-8">
 				{loading && data === null && <TileSkeleton />}
 
-				<div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-					{data?.map((project) => (
-						<ProjectTile
+				<div
+					className="grid grid-cols-2 gap-3 sm:grid-cols-3"
+					onDragOver={(event) => {
+						/* Without this the grid is not a drop target and no drop fires. */
+						if (draggedRef.current !== null) event.preventDefault();
+					}}
+					onDrop={() => void drop()}
+				>
+					{projects.map((project) => (
+						<div
 							key={project.id}
-							project={project}
-							onChanged={refetch}
-						/>
+							draggable
+							onDragStart={(event) => startDrag(event, project.id)}
+							onDragEnter={() => dragOnto(project.id)}
+							onDragEnd={endDrag}
+							className={dragging === project.id ? "opacity-50" : undefined}
+						>
+							<ProjectTile project={project} onChanged={refetch} />
+						</div>
 					))}
 
 					{/* Last, so a new project appears where the eye already is. */}
@@ -38,9 +134,49 @@ export function Home() {
 				)}
 			</main>
 
-			<Toast message={error === null ? null : `Could not load your projects. ${error}`} />
+			<Toast
+				message={
+					error !== null
+						? `Could not load your projects. ${error}`
+						: orderFailed
+							? "Could not save the new order."
+							: null
+				}
+			/>
 		</>
 	);
+}
+
+/**
+ * The server's list, arranged by an order the mouse is dragging.
+ *
+ * Any disagreement between the two, a project created or archived since the
+ * order was taken, falls back to the server's own list. A tile is never dropped
+ * from the grid to honour an order that has gone stale.
+ */
+function arrange(list: Project[], order: string[]): Project[] {
+	if (order.length !== list.length) return list;
+
+	const byId = new Map(list.map((project) => [project.id, project]));
+	const arranged: Project[] = [];
+	for (const id of order) {
+		const project = byId.get(id);
+		if (project === undefined) return list;
+		arranged.push(project);
+	}
+	return arranged;
+}
+
+/** The list with `id` moved to where `target` sits. Null when nothing moves. */
+function moved(ids: string[], id: string, target: string): string[] | null {
+	const from = ids.indexOf(id);
+	const to = ids.indexOf(target);
+	if (from === -1 || to === -1 || from === to) return null;
+
+	const next = [...ids];
+	next.splice(from, 1);
+	next.splice(to, 0, id);
+	return next;
 }
 
 /**

@@ -332,6 +332,9 @@ Give only a NEW address, never the app's root — that one already sits in an op
 tab.
 A named route is the FULL absolute address, never a bare path.
 A file path is the FULL absolute path, never a project-relative one.
+A command carries the full absolute path it needs, so it runs from anywhere;
+never "run this in the project folder", and never a bare command that only
+works from one directory. Rotem asked for this on 2026-09-04.
 A name merely referenced in prose stays as inline backticks.
 The test is copy-intent: if the owner has to retype it to act, fence it.
 Inside a fence no layout rule applies — the fence is one object.
@@ -348,7 +351,8 @@ it. That is his global rule and it wins here. Text that is not spatial never
 gets that treatment.
 
 A fence is the copy button. A project-relative path cannot be pasted anywhere
-as-is, so it fails the copy test. A bare path pasted into an address bar becomes
+as-is, so it fails the copy test, and so does a command that assumes the
+terminal is already sitting in the right folder. A bare path pasted into an address bar becomes
 a web search, so a path is not a link. And a path named only to identify a file —
 "the rule lives in `project-os/Conversations.md`" — is prose, not copy-intent, so
 it stays inline. Real content read inside a monospace box loses its headings,

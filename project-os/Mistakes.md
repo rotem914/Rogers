@@ -64,6 +64,7 @@ Mistakes in HOW you worked:
 
 | Date | What I did | What was wanted | Home if it repeats | Times |
 |---|---|---|---|---|
+| 2026-09-04 | Ran a shell command whose text contained backticks, so bash executed a rollback line from inside it and reverted my own uncommitted work | Text carrying backticks or dollar signs is written to a file through a quoted heredoc, never pasted inside a double-quoted shell string | CLAUDE.md working rules, rule 4 | 1 |
 
 ## Promoted
 

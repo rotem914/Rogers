@@ -11,6 +11,7 @@ import type {
 	ApiErrorBody,
 	CreateProjectBody,
 	Project,
+	ReorderProjectsBody,
 	UpdateProjectBody,
 } from "../shared/types";
 import { errorBody, isUsableId, readJson } from "./http";
@@ -27,9 +28,13 @@ const COLUMNS = `
 	  WHERE n.project_id = p.id AND n.archived_at IS NULL) AS note_count
 `;
 
+/* Dragged order first, then creation order for whatever has never been dragged.
+   `position IS NULL` is 0 or 1 in SQLite, so projects that carry a position sort
+   ahead of the ones that do not, and a database nobody has ever reordered keeps
+   the exact order it had before this column existed. */
 const LIST_SQL = `SELECT ${COLUMNS} FROM projects p
 	 WHERE p.archived_at IS NULL
-	 ORDER BY p.created_at ASC`;
+	 ORDER BY p.position IS NULL, p.position ASC, p.created_at ASC`;
 
 /* Deliberately finds archived projects too. Each route decides what to do with
    one, which is not the same answer for a rename as for a repeated archive. */
@@ -83,6 +88,48 @@ projects.post("/", async (c) => {
 		{ id, name, color: null, noteCount: 0, createdAt: now, updatedAt: now },
 		201,
 	);
+});
+
+/* The order Home shows, written in one go.
+ *
+ * Ahead of the :id routes on purpose. Nothing matches both today, since this is
+ * the only PUT here, but a project called "order" is one route away from being
+ * unreachable and this costs nothing.
+ *
+ * Positions are written for every id in the list, not just the moved one, so
+ * the stored order and the order on screen are the same fact rather than two
+ * that have to agree. */
+projects.put("/order", async (c) => {
+	const body = await readJson<ReorderProjectsBody>(c.req.raw);
+	const ids = body === null ? undefined : body.ids;
+
+	if (!Array.isArray(ids) || !ids.every(isUsableId)) {
+		return c.json(errorBody("An order is a list of project ids."), 400);
+	}
+
+	/* A repeated id would give one project two positions and leave another with
+	   none, which is a half-applied order rather than a wrong one. */
+	if (new Set(ids).size !== ids.length) {
+		return c.json(errorBody("That order names a project twice."), 400);
+	}
+
+	if (ids.length > 0) {
+		const now = new Date().toISOString();
+		const statement = c.env.DB.prepare(
+			`UPDATE projects SET position = ?, updated_at = ?
+			 WHERE id = ? AND archived_at IS NULL`,
+		);
+
+		/* One batch, so a connection lost halfway cannot leave the grid holding
+		   part of the old order and part of the new one. An id the list names but
+		   the database does not have simply changes nothing: the order is a view
+		   of what the browser had on screen, and a stale entry in it is not a
+		   reason to refuse the rest. */
+		await c.env.DB.batch(ids.map((id, index) => statement.bind(index, now, id)));
+	}
+
+	const { results } = await c.env.DB.prepare(LIST_SQL).all<ProjectListRow>();
+	return c.json<Project[]>(results.map(toProject));
 });
 
 projects.patch("/:id", async (c) => {

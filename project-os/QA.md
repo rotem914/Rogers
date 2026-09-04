@@ -209,6 +209,27 @@ browser**, through the browser tool, never through a shell command. Proven on
 2026-09-04 at plan step 3.3: the same text was mangled through curl and came
 back perfect through the browser.
 
+## 10c. Drag and drop is driven by dispatched drag events, never by a mouse drag
+
+A browser tool moves the mouse by dispatching mouse events, and a browser
+refuses to start a native HTML5 drag from one. So `left_click_drag` across two
+tiles reports a successful drag and the screen does not move, which reads as a
+broken feature rather than a limit of the tool.
+
+Check a drag in two halves instead:
+
+1. Read the DOM and confirm the pieces the browser needs: `draggable="true"`
+   on the thing being dragged, and `draggable="false"` on any link inside it,
+   since a link drags its own address by default and wins.
+2. Dispatch the sequence yourself with a real `DataTransfer`, one step at a
+   time with a pause between them so React can render: `dragstart` on the
+   source, `dragenter` on the target, then `dragover` and `drop` on the
+   container, then `dragend` on the source. Read the order back after each
+   step, and reload at the end to prove it was saved.
+
+Proven on 2026-09-04 on Home's project tiles: the mouse drag moved nothing, the
+dispatched sequence reordered the grid, saved, and survived a reload.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

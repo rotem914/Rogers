@@ -101,10 +101,13 @@ export function ProjectTile({
 			) : (
 				<>
 					{/* The overlay link. It sits under the menu button, which is why the
-					    button can still be clicked. */}
+					    button can still be clicked. It is not draggable, because a link
+					    drags its own address by default, and this one covers the tile,
+					    so it would win over dragging the tile itself on Home. */}
 					<Link
 						to={`/p/${project.id}`}
 						aria-label={project.name}
+						draggable={false}
 						className="absolute inset-0 rounded-card"
 					/>
 					<span className="bidi pointer-events-none line-clamp-3 pr-8 font-medium">

@@ -61,6 +61,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-04 · Plan v1 decisions live in PLAN.md until code exists
 - 2026-09-04 · One nullable pinned_at column carries both the pin and the pinned order
 - 2026-09-04 · The API speaks its own shape, not the table shape
+- 2026-09-04 · Project order is a nullable position column, written for the whole list at once
 
 ---
 
@@ -161,3 +162,48 @@ bypass it: a route that answers with a raw row would leak `archived_at` and
 hand the app a JSON string where it expects an array. A check that reads the
 columns and the types and compares them ran clean at this step and can be run
 again whenever the schema moves.
+
+---
+
+## 2026-09-04 - Project order is a nullable position column, written for the whole list at once
+
+### Context
+
+Home shows projects in creation order. Rotem asked to drag them into an order of
+his own, with no grip icon on the tile. `PLAN.md` had already anticipated this
+and left it out of V1: "no position column in V1, one migration away if wanted."
+Two questions had to be answered: how the order is stored without rewriting rows
+that already exist, and what the browser sends when a tile is dropped.
+
+### Options
+
+1. Backfill a position for every existing project in the migration, so the
+   column is never null.
+2. Add a nullable position, leave every existing row untouched, and sort
+   unpositioned projects after positioned ones, still by creation date.
+3. Store a fractional position and write only the row that moved.
+
+### Decision
+
+Option 2 for the column, taken by the assistant. The migration adds
+`position INTEGER` with no default, so no existing row is rewritten, which is
+the additive-migration invariant in `CLAUDE.md` rule 11. The list sorts
+`position IS NULL, position ASC, created_at ASC`, so a database nobody has
+reordered keeps exactly the order it had, and a project created after a reorder
+lands at the end where a new tile has always appeared.
+
+For the write, the browser sends the whole ordered list of ids to
+`PUT /api/projects/order` and the Worker writes a position to every one of them
+in a single D1 batch. Option 3 was rejected: a fractional position is one write
+instead of a handful, but it drifts, needs a rebalance nobody remembers to
+write, and buys nothing at this size.
+
+### Consequences
+
+The order on screen and the order in the database are one fact rather than two
+that have to agree, and a connection lost halfway cannot leave half of each,
+because the batch is atomic. The cost is a write per project on every drop,
+which is nothing at a few dozen projects and would need revisiting at a few
+hundred. The list query now depends on the column, so **the migration must reach
+a database before code that reads it does**: applying it to the live database is
+a prerequisite of the next deploy, not a follow-up.
