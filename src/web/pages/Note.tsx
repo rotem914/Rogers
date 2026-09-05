@@ -14,6 +14,7 @@ import type { Note as NoteType, UpdateNoteBody } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { onSessionExpired, takeParkedDraft } from "../platform/session";
 import { NoteSaver, draftKey, type SaveStatus } from "../lib/autosave";
+import { UndoStack, undoShortcut } from "../lib/undo";
 import { useApi } from "../lib/useApi";
 import { TopBar } from "../components/TopBar";
 import { AutoGrowTextarea } from "../components/AutoGrowTextarea";
@@ -70,8 +71,12 @@ function Editor({ note }: { note: NoteType }) {
 	const saver = useRef<NoteSaver | null>(null);
 	const picker = useRef<HTMLInputElement>(null);
 	const latest = useRef({ title: note.title, body: note.body, images: note.images });
+	const [undo] = useState(
+		() => new UndoStack({ title: note.title, body: note.body, images: note.images }),
+	);
 
-	function change(patch: UpdateNoteBody) {
+	/* `record` is off when the patch comes from the undo stack itself. */
+	function change(patch: UpdateNoteBody, record = true) {
 		if (patch.title !== undefined) {
 			latest.current.title = patch.title;
 			setTitle(patch.title);
@@ -85,7 +90,24 @@ function Editor({ note }: { note: NoteType }) {
 			latest.current.images = patch.images;
 			setImages(patch.images);
 		}
+		if (record && (patch.title ?? patch.body ?? patch.images) !== undefined) {
+			undo.record(
+				{ ...latest.current },
+				patch.title !== undefined ? "title" : patch.body !== undefined ? "body" : undefined,
+			);
+		}
 		saver.current?.queue(patch);
+	}
+
+	/* Undo or redo: only the fields that differ go on screen and out to save. */
+	function travel(step: "undo" | "redo") {
+		const snapshot = step === "undo" ? undo.undo() : undo.redo();
+		if (snapshot === null) return;
+		const patch: UpdateNoteBody = {};
+		if (snapshot.title !== latest.current.title) patch.title = snapshot.title;
+		if (snapshot.body !== latest.current.body) patch.body = snapshot.body;
+		if (snapshot.images !== latest.current.images) patch.images = snapshot.images;
+		change(patch, false);
 	}
 
 	/* Pictures: upload each, append its key, save through the same path as typing. */
@@ -124,10 +146,17 @@ function Editor({ note }: { note: NoteType }) {
 	}
 
 	/* Escape leaves the way the back arrow does, saving first. Only when the
-	   focus is not inside a menu, which handles its own Escape. */
+	   focus is not inside a menu, which handles its own Escape. Ctrl+Z and
+	   Ctrl+Shift+Z step through the note's own undo stack, which covers the
+	   pictures too, instead of the browser's per-field one. */
 	useEffect(() => {
 		function onKey(event: KeyboardEvent) {
 			if (event.key === "Escape") void goBack();
+			const step = undoShortcut(event);
+			if (step !== null) {
+				event.preventDefault();
+				travel(step);
+			}
 		}
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);
@@ -184,6 +213,8 @@ function Editor({ note }: { note: NoteType }) {
 					setImages(patch.images);
 				}
 				current.queue(patch);
+				/* What was parked is the note's real starting point, not a step back. */
+				undo.reset({ ...latest.current });
 			} catch {
 				/* Unreadable parked text is not restorable; the server copy stands. */
 			}

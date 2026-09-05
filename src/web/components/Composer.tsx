@@ -14,6 +14,7 @@ import type { CreateNoteBody, Note } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { onSessionExpired } from "../platform/session";
 import { NoteSaver, type SaveStatus } from "../lib/autosave";
+import { UndoStack, undoShortcut } from "../lib/undo";
 import { ACCEPT_ATTRIBUTE, imageFiles, uploadImage } from "../lib/upload";
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
 import { ImageStrip } from "./ImageStrip";
@@ -54,6 +55,7 @@ export function Composer({
 	const creatingRef = useRef<Promise<void> | null>(null);
 	/* Latest values, readable from inside async work without stale closures. */
 	const latest = useRef({ title: "", body: "", pinned: false, images: [] as string[] });
+	const [undo] = useState(() => new UndoStack({ title: "", body: "", images: [] }));
 
 	/* Create the note on the server once, then sync whatever was typed while
 	   the request was out. Returns the saver, or null while creation is still
@@ -99,7 +101,11 @@ export function Composer({
 		return saverRef.current;
 	}, [projectId]);
 
-	function change(patch: { title?: string; body?: string; pinned?: boolean; images?: string[] }) {
+	/* `record` is off when the patch comes from the undo stack itself. */
+	function change(
+		patch: { title?: string; body?: string; pinned?: boolean; images?: string[] },
+		record = true,
+	) {
 		if (patch.images !== undefined) {
 			latest.current.images = patch.images;
 			setImages(patch.images);
@@ -116,6 +122,13 @@ export function Composer({
 			latest.current.pinned = patch.pinned;
 			setPinned(patch.pinned);
 		}
+		if (record && (patch.title ?? patch.body ?? patch.images) !== undefined) {
+			const { title, body, images } = latest.current;
+			undo.record(
+				{ title, body, images },
+				patch.title !== undefined ? "title" : patch.body !== undefined ? "body" : undefined,
+			);
+		}
 
 		const saver = saverRef.current;
 		if (saver !== null) {
@@ -125,6 +138,17 @@ export function Composer({
 			   ensureCreated picks up this value, so it is not queued twice. */
 			void ensureCreated();
 		}
+	}
+
+	/* Undo or redo: only the fields that differ go on screen and out to save. */
+	function travel(step: "undo" | "redo") {
+		const snapshot = step === "undo" ? undo.undo() : undo.redo();
+		if (snapshot === null) return;
+		const patch: { title?: string; body?: string; images?: string[] } = {};
+		if (snapshot.title !== latest.current.title) patch.title = snapshot.title;
+		if (snapshot.body !== latest.current.body) patch.body = snapshot.body;
+		if (snapshot.images !== latest.current.images) patch.images = snapshot.images;
+		change(patch, false);
 	}
 
 	/* Pictures: upload each, append its key, and save through the same path as
@@ -151,6 +175,7 @@ export function Composer({
 		saverRef.current = null;
 		idRef.current = crypto.randomUUID();
 		latest.current = { title: "", body: "", pinned: false, images: [] };
+		undo.reset({ title: "", body: "", images: [] });
 		setTitle("");
 		setBody("");
 		setPinned(false);
@@ -193,6 +218,11 @@ export function Composer({
 		}
 		function onKey(event: KeyboardEvent) {
 			if (event.key === "Escape") void close();
+			const step = undoShortcut(event);
+			if (step !== null) {
+				event.preventDefault();
+				travel(step);
+			}
 		}
 		document.addEventListener("pointerdown", onPointerDown);
 		document.addEventListener("keydown", onKey);

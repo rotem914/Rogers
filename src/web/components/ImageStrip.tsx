@@ -23,12 +23,12 @@ export function ImageStrip({
 	/* lg is the note page: the picture at its own aspect, as wide as the column
 	   allows and never past 1160px. */
 	const box =
-		size === "sm" ? "size-12" : size === "lg" ? "w-full max-w-[1160px]" : "size-24";
+		size === "sm" ? "size-[216px]" : size === "lg" ? "w-full max-w-[1160px]" : "size-24";
 	const fill = size === "lg" ? "block w-full" : "size-full object-cover";
 
 	return (
 		<>
-			<ul className="flex flex-wrap gap-2">
+			<ul className={`flex flex-wrap ${size === "sm" ? "gap-4" : size === "lg" ? "gap-6" : "gap-2"}`}>
 				{keys.map((key) => (
 					<li
 						key={key}
@@ -60,7 +60,7 @@ export function ImageStrip({
 									type="button"
 									aria-label="Remove image"
 									onClick={() => onRemove(key)}
-									className="absolute -top-1.5 -right-1.5 hidden size-5 items-center justify-center rounded-pill border border-border bg-surface text-xs text-muted group-hover/thumb:flex hover:text-danger focus-visible:flex"
+									className="absolute -top-1.5 -right-1.5 hidden size-8 items-center justify-center rounded-pill border border-border bg-surface text-[24px] leading-none text-muted group-hover/thumb:flex hover:text-danger focus-visible:flex"
 								>
 									×
 								</button>

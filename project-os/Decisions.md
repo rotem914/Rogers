@@ -64,6 +64,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-04 · Project order is a nullable position column, written for the whole list at once
 - 2026-09-04 · A dragged note order is per section, and an undragged note sorts first
 - 2026-09-05 · Rogers lives on rogers.rotem-e.com, not on workers.dev
+- 2026-09-05 · Undo is the note's own stack, with pictures in it, not the browser's
 
 ---
 
@@ -284,3 +285,39 @@ declared, so the old bookmark goes dark unless `workers_dev: true` is added
 back; that is an open verdict, not a decision. Every future deploy carries the
 custom domain, and the Access application must keep the hostname or the notes
 become public. Revisit only if the domain itself moves.
+
+---
+## 2026-09-05 - Undo is the note's own stack, with pictures in it, not the browser's
+
+### Context
+
+Rotem asked for undo and redo covering text and pictures. A textarea already
+undoes its own typing, but that stack is per field, knows nothing about a
+removed picture, and vanishes the moment React sets the field's value from
+outside, which is what restoring a picture or a parked draft does.
+
+### Options
+
+1. Leave text to the browser and add a separate undo for pictures only.
+2. One stack per open editor, owned by the app: title, body and pictures as
+   one history, Ctrl+Z taken over from the browser.
+3. A full document model with selection tracking, as an editor library would.
+
+### Decision
+
+Option 2. `src/web/lib/undo.ts` keeps snapshots of title, body and images; a
+run of typing in one field within a second folds into one step, a picture is
+always its own step. Undo and redo go through the same `change()` as typing,
+so they queue a save like any edit. The shortcut keys on `event.code`, so a
+Hebrew layout works, with the key name as fallback. Parking and the composer's
+reset start the stack over, since neither is an edit the person made.
+
+### Consequences
+
+One Ctrl+Z means the same thing everywhere in a note, pictures included, and
+an undone edit can never be lost because it is saved like typing. The cost is
+that the browser's own undo is gone in these fields, and the caret lands at
+the end of a field after an undo rather than where the change was; option 3
+is what fixes that, and it was not worth its weight for a notes app. There is
+no on-screen control yet, so on the phone the feature does not exist until
+buttons are added.
