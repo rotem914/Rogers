@@ -1,6 +1,6 @@
 # Rogers · Plan v1
 
-Date: 2026-09-04 · Status: V1 built and live at rogers.rotem914.workers.dev behind Cloudflare Access; phases 0 to 7 done. V1 = phases 0 to 7, PWA included. Tauri is V1.1, decided after living with the PWA. Every step in section 9 runs only after an explicit go.
+Date: 2026-09-04 · Status: V1 built and live at rogers.rotem-e.com behind Cloudflare Access; phases 0 to 7 done. V1 = phases 0 to 7, PWA included. Tauri is V1.1, decided after living with the PWA. Every step in section 9 runs only after an explicit go.
 
 Rogers is a personal, single-user notes app in the spirit of Google Keep, grouped by project. It runs on one Cloudflare Worker, is dark mode only, and is built so the same frontend ships as a website and an installable PWA in V1, and can become a Tauri desktop app in V1.1 without a rewrite.
 

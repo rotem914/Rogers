@@ -10,6 +10,10 @@
 		"enabled": true
 	},
 	"upload_source_maps": true,
+	"workers_dev": false,
+	"routes": [
+		{ "pattern": "rogers.rotem-e.com", "custom_domain": true }
+	],
 	"assets": {
 		"directory": "./dist/client",
 		"not_found_handling": "single-page-application",

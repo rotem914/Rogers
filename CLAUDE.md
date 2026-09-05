@@ -11,7 +11,7 @@ Rogers, one Cloudflare Worker: Hono API + React/Vite SPA served as static assets
 Rogers is a personal notes app in the spirit of Google Keep, grouped by project: a
 grid of projects, a Keep-style list of notes per project, and each note on its own
 page with text and pasted images. One user, Rotem, behind an email login. Dark mode
-only, no light theme anywhere. State right now: V1 complete and live at rogers.rotem914.workers.dev behind Cloudflare Access; the Tauri shell is V1.1, only if something native is missed. The
+only, no light theme anywhere. State right now: V1 complete and live at rogers.rotem-e.com behind Cloudflare Access; the Tauri shell is V1.1, only if something native is missed. The
 build plan with its approval-gated steps is `PLAN.md` at the repository root; every
 step runs only after Rotem says go.
 
@@ -30,7 +30,7 @@ reading time.
 |---|---|
 | Project root | this repository, wherever this copy of it lives |
 | Local app | `http://localhost:5173`, started by Rotem |
-| Live app | `https://rogers.rotem914.workers.dev`, deployed with `npm run deploy` |
+| Live app | `https://rogers.rotem-e.com`, deployed with `npm run deploy` |
 | Checks | `npm run check`, defined at plan step 1.1 as typecheck plus build; nothing to run before that |
 
 ## Read these before you work

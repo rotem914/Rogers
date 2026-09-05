@@ -63,6 +63,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-04 · The API speaks its own shape, not the table shape
 - 2026-09-04 · Project order is a nullable position column, written for the whole list at once
 - 2026-09-04 · A dragged note order is per section, and an undragged note sorts first
+- 2026-09-05 · Rogers lives on rogers.rotem-e.com, not on workers.dev
 
 ---
 
@@ -251,3 +252,35 @@ that does shift: a note that is unpinned comes back at the TOP of the list
 rather than in its creation slot, because clearing its position is what puts it
 back among the undragged. Revisit if Rotem wants a drop across the line to pin,
 which would mean the drag has to write the pinned state as well as the order.
+
+## 2026-09-05 - Rogers lives on rogers.rotem-e.com, not on workers.dev
+
+### Context
+
+Rotem's iPhone on 4G could not open rogers.rotem914.workers.dev: a white page
+and a progress bar frozen near the start, in Chrome, in Incognito, and in
+Safari. Cloudflare's own login host loaded fine on the same phone, and so did
+everything else, but Cloudflare's demo page on workers.dev hung the same way.
+Some mobile carriers drop the whole workers.dev domain family because of the
+abuse it hosts; nothing in Rogers can change what a carrier drops.
+
+### Options
+
+1. A domain of Rotem's own in front of the Worker, with the login extended to it.
+2. Keep workers.dev and accept that the phone only works on other networks.
+3. A different temporary domain family, such as pages.dev, by moving the hosting.
+
+### Decision
+
+Option 1, chosen by Rotem: the Worker gets `rogers.rotem-e.com` as a custom
+domain under his existing rotem-e.com zone, and the Access application covers
+the new hostname first, so the new address is never public for a moment.
+
+### Consequences
+
+The phone can reach Rogers on any network, and the address is his, not
+Cloudflare's. Wrangler disables the workers.dev address the moment a route is
+declared, so the old bookmark goes dark unless `workers_dev: true` is added
+back; that is an open verdict, not a decision. Every future deploy carries the
+custom domain, and the Access application must keep the hostname or the notes
+become public. Revisit only if the domain itself moves.
