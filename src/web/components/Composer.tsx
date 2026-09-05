@@ -231,7 +231,7 @@ export function Composer({
 				<button
 					type="button"
 					onClick={() => setOpen(true)}
-					className="min-w-0 flex-1 rounded-[10px] px-4 py-3 text-left text-lg text-muted hover:bg-surface-hover"
+					className="min-w-0 flex-1 rounded-[10px] px-4 py-3 text-left text-lg text-muted transition-colors duration-[144ms] ease-out hover:bg-surface-hover"
 				>
 					Take a note…
 				</button>

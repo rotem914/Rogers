@@ -4,7 +4,7 @@
  * handle, so there is no grip to find, and the grid rearranges under the mouse
  * rather than only after the drop. */
 
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import type {
 	CreateProjectBody,
 	Project,
@@ -100,9 +100,9 @@ export function Home() {
 		<>
 			<TopBar title="Rogers" />
 
-			<main className="mx-auto max-w-[1168px] px-4 pt-14 pb-8">
+			<main className="mx-auto max-w-[1324px] px-[72px] pt-14 pb-8 max-[900px]:px-[18px]">
 				<div
-					className="grid grid-cols-[repeat(auto-fill,272px)] gap-4"
+					className="grid grid-cols-[repeat(auto-fill,272px)] gap-5 max-[900px]:grid-cols-[repeat(auto-fill,minmax(185px,1fr))] max-[430px]:grid-cols-1"
 					onDragOver={(event) => {
 						/* Without this the grid is not a drop target and no drop fires. */
 						if (draggedRef.current !== null) event.preventDefault();
@@ -158,6 +158,7 @@ function NewProjectTile({ onCreated }: { onCreated: () => void }) {
 	const [name, setName] = useState("");
 	const [saving, setSaving] = useState(false);
 	const [failed, setFailed] = useState(false);
+	const card = useRef<HTMLDivElement>(null);
 
 	async function create() {
 		const trimmed = name.trim();
@@ -194,13 +195,28 @@ function NewProjectTile({ onCreated }: { onCreated: () => void }) {
 		setFailed(false);
 	}
 
+	/* Clicking away from the card commits the name, the same as Enter, so a
+	   typed name is never thrown away by a click on the page behind it. */
+	useEffect(() => {
+		if (!naming) return;
+
+		function onPointerDown(event: PointerEvent) {
+			const target = event.target;
+			if (target instanceof Node && card.current?.contains(target)) return;
+			void create();
+		}
+
+		document.addEventListener("pointerdown", onPointerDown);
+		return () => document.removeEventListener("pointerdown", onPointerDown);
+	});
+
 	if (!naming) {
 		return (
 			<button
 				type="button"
 				onClick={() => setNaming(true)}
 				aria-label="New project"
-				className="flex aspect-4/3 items-center justify-center rounded-card border border-dashed border-border text-2xl text-muted hover:border-accent hover:text-accent"
+				className="flex aspect-4/3 items-center justify-center rounded-card border border-dashed border-border text-2xl text-muted hover:border-accent hover:text-accent max-[430px]:aspect-auto max-[430px]:h-[144px]"
 			>
 				+
 			</button>
@@ -208,7 +224,10 @@ function NewProjectTile({ onCreated }: { onCreated: () => void }) {
 	}
 
 	return (
-		<div className="flex aspect-4/3 flex-col justify-between rounded-card border border-accent bg-surface p-4">
+		<div
+			ref={card}
+			className="flex aspect-4/3 flex-col justify-between rounded-card border border-accent bg-surface p-6 max-[430px]:aspect-auto max-[430px]:h-[144px]"
+		>
 			<input
 				autoFocus
 				value={name}

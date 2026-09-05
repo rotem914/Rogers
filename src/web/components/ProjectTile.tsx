@@ -81,7 +81,7 @@ export function ProjectTile({
 
 	return (
 		<div
-			className="group relative flex aspect-4/3 flex-col justify-between rounded-card border border-border bg-surface p-4 hover:bg-surface-hover"
+			className="group relative flex aspect-4/3 flex-col justify-between rounded-card border border-border bg-surface p-6 transition-colors duration-[144ms] ease-out hover:bg-surface-hover max-[430px]:aspect-auto max-[430px]:h-[144px]"
 			style={border}
 		>
 			{mode === "renaming" ? (
@@ -117,13 +117,7 @@ export function ProjectTile({
 			)}
 
 			<div className="pointer-events-none flex items-end justify-between">
-				<span className="text-sm text-muted">
-					{failed
-						? "Could not save."
-						: project.noteCount === 1
-							? "1 note"
-							: `${project.noteCount} notes`}
-				</span>
+				<span className="text-sm text-muted">{failed ? "Could not save." : ""}</span>
 			</div>
 
 			{/* Chrome, so it stays top right whatever direction the name runs in. */}

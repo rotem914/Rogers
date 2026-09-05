@@ -27,7 +27,7 @@
 	--color-danger: #f28b82; /* destructive actions and error text */
 
 	/* Shape. */
-	--radius-card: 8px;
+	--radius-card: 13px;
 	--radius-pill: 999px;
 
 	/* The one elevation we use, for the expanded composer. */

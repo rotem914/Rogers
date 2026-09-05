@@ -32,7 +32,7 @@ export function TopBar({ backTo, onBack, title, trailing }: TopBarProps) {
 
 	return (
 		<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-8">
-			<div className="mx-auto flex w-full max-w-[1168px] items-center gap-3 px-4">
+			<div className="mx-auto flex w-full max-w-[1324px] items-center gap-3 px-[72px] max-[900px]:px-[18px]">
 				{backTo !== undefined && (
 					<Link
 						to={backTo}
