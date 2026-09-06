@@ -9,15 +9,27 @@
  * A bundled desktop build loads from a file and only hash addresses survive a
  * reload there, so plan step 8 flips this by changing platform.ts alone. */
 
+import { useEffect } from "react";
 import { BrowserRouter, HashRouter, Link, Route, Routes } from "react-router";
 import { usePathRouting } from "./platform/platform";
+import { backfillThumbnails } from "./lib/upload";
 import { Home } from "./pages/Home";
 import { Project } from "./pages/Project";
 import { Note } from "./pages/Note";
 
 const Router = usePathRouting ? BrowserRouter : HashRouter;
 
+/** How long the app has been open before the picture backfill may start. */
+const BACKFILL_DELAY_MS = 3000;
+
 function App() {
+	/* Old pictures get their small copies in the background, once the screen
+	   the visit opened on has long since painted. */
+	useEffect(() => {
+		const timer = window.setTimeout(() => void backfillThumbnails(), BACKFILL_DELAY_MS);
+		return () => window.clearTimeout(timer);
+	}, []);
+
 	return (
 		<Router>
 			<div className="min-h-screen bg-bg text-text">

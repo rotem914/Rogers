@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Project, UpdateProjectBody } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
+import { prefetch } from "../lib/useApi";
 
 /** The accents a project can wear. Borders only, so nothing competes with text. */
 const COLORS: { label: string; value: string | null }[] = [
@@ -79,6 +80,13 @@ export function ProjectTile({
 
 	const border = project.color !== null ? { borderColor: project.color } : undefined;
 
+	/* Hovering or focusing the tile asks for the project's tabs and Main's notes
+	   ahead of the click, so the project page opens with its list already there. */
+	function warm() {
+		prefetch(`/api/projects/${project.id}/tabs`);
+		prefetch(`/api/projects/${project.id}/notes`);
+	}
+
 	return (
 		<div
 			className="group relative flex aspect-4/3 flex-col justify-between rounded-card bg-card p-6 transition-colors duration-[144ms] ease-out hover:bg-card-hover max-[430px]:aspect-auto max-[430px]:h-[144px]"
@@ -108,6 +116,8 @@ export function ProjectTile({
 						to={`/p/${project.id}`}
 						aria-label={project.name}
 						draggable={false}
+						onPointerEnter={warm}
+						onFocus={warm}
 						className="absolute inset-0 rounded-card"
 					/>
 					<span className="bidi pointer-events-none line-clamp-3 pr-8 text-[24px] font-medium">

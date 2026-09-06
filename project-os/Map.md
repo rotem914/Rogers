@@ -73,7 +73,7 @@ Where state lives and who is allowed to write it.
 | What | Where | Format | Written by |
 |---|---|---|---|
 | Projects, tabs and notes | D1 database `rogers-db`, bound as `env.DB` | SQLite | `src/api/*` only. No other module opens the database. |
-| Images | R2 bucket `rogers-images`, bound as `env.IMAGES` | binary, keyed by uuid | `src/api/*` only, through the upload route; a note stores keys, never bytes |
+| Images | R2 bucket `rogers-images`, bound as `env.IMAGES` | binary, keyed by uuid; a small WebP copy for lists under `thumb/<key>`, made by the browser at upload and backfilled for older pictures a few seconds after the app opens | `src/api/*` only, through the upload route and the thumb route; a note stores keys, never bytes |
 
 ## Ownership
 

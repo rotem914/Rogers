@@ -67,6 +67,8 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-05 · Undo is the note's own stack, with pictures in it, not the browser's
 - 2026-09-06 · Main is not a row, and a removed tab's notes fall back to Main
 - 2026-09-06 · Main's name lives on the project, and tab undo replays actions
+- 2026-09-07 · Lists are remembered across screens, the note editor never is
+- 2026-09-07 · The remembered lists live in local storage, by the owner's call
 
 ---
 
@@ -424,3 +426,73 @@ whenever the keystroke is not inside a field, so with the composer open and
 focus off its fields, both stacks hear the same press. And the history lives in
 the page, so leaving the project and coming back starts it empty, while the
 changes themselves are already saved.
+
+## 2026-09-07 - Lists are remembered across screens, the note editor never is
+
+### Context
+
+Rotem saw the project page assemble itself in steps on the way back from a
+note: "Take a note" first, the rows a beat later. Two causes. Every screen is
+unmounted on navigation and starts from nothing, so a list it showed a second
+ago costs a full round trip again. And the notes waited for the tabs answer
+before they were even asked for, so Main's list was always two round trips out.
+
+### Options
+
+1. A query library with a cache, which PLAN.md had already rejected for size.
+2. Keep the last answer per address in the read hook, show it at once, and
+   fetch the fresh copy behind it, for every read including the note.
+3. The same, but opt-in per read, with the note page left out.
+4. Prefetch a project's lists while the tile is hovered.
+
+### Decision
+
+Option 3, taken by the assistant. `useApi` grew a `remember` flag; the three
+list reads opt in, the single-note read does not.
+
+The note is left out on purpose. The editor seeds itself from the first answer
+it gets and never from a later one, which is how a save response can never
+overwrite newer text. A remembered note would be seeded from a stale copy, the
+fresh copy would be ignored, and the next keystroke would save the stale text
+over the newer one: the exact loss invariant one forbids. So the editor keeps
+paying its round trip.
+
+The waterfall fix rides along: when the address names no tab, the list is Main
+whatever the tabs say, so it is fetched beside them instead of after them.
+
+### Consequences
+
+A list can show a preview or a note count that is up to one round trip old,
+roughly a tenth of a second in the dev app, before the fresh answer replaces
+it. That is the price of the instant paint, and it is a preview, never the
+text being edited. Anything that later reads what it edits must not opt in.
+Option 4 would make a first visit instant too and is still open.
+
+## 2026-09-07 - The remembered lists live in local storage, by the owner's call
+
+### Context
+
+The remembered lists first went into session storage, which dies with the tab.
+Rotem asked for everything that saves a load, and a new tab or a restarted
+browser still paid one round trip.
+
+### Options
+
+1. Session storage: a reload paints at once, a new tab does not, and nothing
+   about a private note outlives the window it was read in.
+2. Local storage: every tab and every restart paint at once, and the note
+   titles and previews stay on the machine until Rogers overwrites them,
+   logged out or not.
+
+### Decision
+
+Option 2, Rotem's, on 2026-09-07, after the cost was laid out in plain words.
+Rogers is his own machine's app; the speed is worth more than the exposure of
+previews to someone at his unlocked computer.
+
+### Consequences
+
+The full note is still never stored, so the editor always starts from the
+server. If Rogers is ever used on a shared machine, this is the entry to
+revisit: one word in `useApi.ts` moves it back. Logging out does not clear
+the copy; a "clear on logout" would need a logout the app does not have.

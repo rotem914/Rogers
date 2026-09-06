@@ -17,7 +17,7 @@ import type {
 	UpdateTabBody,
 } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
-import { useApi } from "../lib/useApi";
+import { prefetch, useApi } from "../lib/useApi";
 import { arrange, moved } from "../lib/reorder";
 import { TabHistory, undoShortcut } from "../lib/undo";
 import { TopBar } from "../components/TopBar";
@@ -32,26 +32,31 @@ export function Project() {
 	/* There is no endpoint for one project, so the name comes from the list.
 	   It is a small payload, and it also answers the question a direct link
 	   raises: a project that is not in the list is either gone or archived. */
-	const projects = useApi<ProjectType[]>("/api/projects");
+	const projects = useApi<ProjectType[]>("/api/projects", { remember: true });
 	const project = projects.data?.find((candidate) => candidate.id === id) ?? null;
 
 	/* The tabs, and which one the address names. None means Main, the project's
 	   own list. A tab the address names but the list does not have is Main too:
 	   it was removed, or the link is stale. */
-	const tabs = useApi<Tab[]>(id === undefined ? null : `/api/projects/${id}/tabs`);
+	const tabs = useApi<Tab[]>(id === undefined ? null : `/api/projects/${id}/tabs`, {
+		remember: true,
+	});
 	const [searchParams, setSearchParams] = useSearchParams();
 	const requestedTab = searchParams.get("tab");
 	const tabId = tabs.data?.find((tab) => tab.id === requestedTab)?.id ?? null;
 
-	/* The notes wait for the first answer about the tabs, so a tab's address
-	   never shows Main's notes for a frame first. A refetch of the tabs keeps
-	   the old list, so it does not blank the notes; a failed tabs call falls
-	   through to Main. */
-	const tabsPending = tabs.data === null && tabs.error === null;
+	/* When the address names a tab, the notes wait for the first answer about
+	   the tabs, so that address never shows Main's notes for a frame first. An
+	   address that names none is Main whatever the tabs say, so its notes are
+	   asked for at once, beside the tabs instead of after them. A refetch of the
+	   tabs keeps the old list, so it does not blank the notes; a failed tabs
+	   call falls through to Main. */
+	const tabsPending = requestedTab !== null && tabs.data === null && tabs.error === null;
 	const notes = useApi<NotePreview[]>(
 		id === undefined || tabsPending
 			? null
 			: `/api/projects/${id}/notes${tabId === null ? "" : `?tab=${tabId}`}`,
+		{ remember: true },
 	);
 
 	const composer = useRef<ComposerHandle>(null);
@@ -71,6 +76,17 @@ export function Project() {
 	});
 	if (left.tab !== tabId) setLeft({ tab: tabId, list: notes.data });
 	const shown = notes.data === left.list ? null : notes.data;
+
+	/* The other tabs' lists are fetched as soon as the tabs are known, so the
+	   first switch to any of them paints at once. A list already remembered is
+	   not asked for again; the switch itself refreshes it. */
+	useEffect(() => {
+		if (id === undefined || tabs.data === null) return;
+		if (tabId !== null) prefetch(`/api/projects/${id}/notes`);
+		for (const tab of tabs.data) {
+			if (tab.id !== tabId) prefetch(`/api/projects/${id}/notes?tab=${tab.id}`);
+		}
+	}, [id, tabs.data, tabId]);
 
 	/* A tab just made is opened only once the refetched list knows it, so the
 	   address never names a tab the page cannot yet show. */

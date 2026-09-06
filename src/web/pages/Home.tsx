@@ -19,7 +19,9 @@ import { ProjectTile } from "../components/ProjectTile";
 import { Toast } from "../components/Feedback";
 
 export function Home() {
-	const { data, loading, error, refetch } = useApi<Project[]>("/api/projects");
+	const { data, loading, error, refetch } = useApi<Project[]>("/api/projects", {
+		remember: true,
+	});
 
 	/* The order being dragged: in state so the grid redraws, and in a ref so the
 	   drop handler can read what the last hover wrote, because state is a render

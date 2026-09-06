@@ -159,6 +159,9 @@ export type UploadResult = {
 	key: string;
 };
 
+/** The pictures that still have no small copy for lists. */
+export type MissingThumbs = { keys: string[] };
+
 /* ---------------------------------------------------------------- failure */
 
 /** Every failed request answers in this shape, so the client reads one field. */

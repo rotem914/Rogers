@@ -260,6 +260,22 @@ so typed text is appended. Measure widths only while the pane is shown: a hidden
 pane reports a 0-wide viewport, and the "overflow" it then shows is the page's
 minimum width, not a defect.
 
+## 10e. Remembered lists and the untouched editor
+
+Home, a project and its tabs remember the list they last showed and paint it
+before the network answers. Any change to the read hook, or to what a screen
+reads, checks both halves of that bargain:
+
+1. From a note, press the back arrow with a mutation observer on the page
+   root: the project page arrives in ONE render carrying the composer and the
+   rows together. A render with the composer alone is the regression.
+2. Edit a note, wait for "Saved", go back: the row may read the old preview for
+   one round trip, then must read the new one. Reopen the note: the editor
+   shows the edit at once, because the note read is never remembered. A note
+   opening on stale text is blocking.
+3. Every screen still sends its request on open; a remembered list is a first
+   paint, never a reason to skip the fetch.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

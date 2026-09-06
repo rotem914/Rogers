@@ -21,7 +21,8 @@ export function ImageStrip({
 	if (keys.length === 0) return null;
 
 	/* lg is the note page: the picture at its own aspect, as wide as the column
-	   allows and never past 1160px. */
+	   allows and never past 1160px, and the only size that shows the original
+	   bytes; the two small sizes ask for the list copy. */
 	const box =
 		size === "sm" ? "size-[216px]" : size === "lg" ? "w-full max-w-[1160px]" : "size-24";
 	const fill = size === "lg" ? "block w-full" : "size-full object-cover";
@@ -36,7 +37,7 @@ export function ImageStrip({
 					>
 						{onRemove === undefined ? (
 							<img
-								src={imageSrc(key)}
+								src={imageSrc(key, "sm")}
 								alt=""
 								loading="lazy"
 								className={`${box} rounded-card border border-border object-cover`}
@@ -50,7 +51,7 @@ export function ImageStrip({
 									className={`${box} block overflow-hidden rounded-card border border-border`}
 								>
 									<img
-										src={imageSrc(key)}
+										src={imageSrc(key, size === "lg" ? "full" : "sm")}
 										alt=""
 										loading="lazy"
 										className={fill}
