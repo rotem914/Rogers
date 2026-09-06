@@ -23,7 +23,7 @@ export const projects = new Hono<{ Bindings: Env }>();
    note count is a subquery rather than a second round trip, and it counts live
    notes only. */
 const COLUMNS = `
-	p.id, p.name, p.color, p.created_at, p.updated_at, p.archived_at,
+	p.id, p.name, p.color, p.main_tab_name, p.created_at, p.updated_at, p.archived_at,
 	(SELECT count(*) FROM notes n
 	  WHERE n.project_id = p.id AND n.archived_at IS NULL) AS note_count
 `;
@@ -85,7 +85,15 @@ projects.post("/", async (c) => {
 	}
 
 	return c.json<Project>(
-		{ id, name, color: null, noteCount: 0, createdAt: now, updatedAt: now },
+		{
+			id,
+			name,
+			color: null,
+			noteCount: 0,
+			mainTabName: null,
+			createdAt: now,
+			updatedAt: now,
+		},
 		201,
 	);
 });
@@ -173,6 +181,25 @@ projects.patch("/:id", async (c) => {
 		}
 		assignments.push("color = ?");
 		values.push(color);
+	}
+
+	/* The first tab's name. It has no tab row of its own, so renaming it is a
+	   change to the project. An empty name is refused rather than stored, the
+	   same as the project's own; null puts it back to "Main". */
+	if (body !== null && "mainTabName" in body) {
+		const mainTabName = body.mainTabName;
+		if (mainTabName !== null && typeof mainTabName !== "string") {
+			return c.json<ApiErrorBody>(
+				{ error: "That name must be text, or null to clear it." },
+				400,
+			);
+		}
+		const trimmed = mainTabName === null ? null : mainTabName.trim();
+		if (trimmed === "") {
+			return c.json<ApiErrorBody>({ error: "A tab needs a name." }, 400);
+		}
+		assignments.push("main_tab_name = ?");
+		values.push(trimmed);
 	}
 
 	/* A request that names nothing changes nothing, and answers with the project

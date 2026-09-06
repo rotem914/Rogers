@@ -13,6 +13,8 @@ export type ProjectRow = {
 	id: string;
 	name: string;
 	color: string | null;
+	/** What the first tab is called. Null means it was never renamed. */
+	main_tab_name: string | null;
 	created_at: string;
 	updated_at: string;
 	archived_at: string | null;
@@ -53,6 +55,7 @@ export function toProject(row: ProjectListRow): Project {
 		name: row.name,
 		color: row.color,
 		noteCount: row.note_count,
+		mainTabName: row.main_tab_name,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 	};

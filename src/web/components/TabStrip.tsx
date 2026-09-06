@@ -1,23 +1,28 @@
-/* The tabs above a project's list, and the button that makes one.
+/* The tabs beside a project's name, and the button that makes one.
  *
  * A project starts with no tabs and only the plus. The first click turns the
  * project's own list into a tab called Main and puts "New tab" beside it, with
- * an empty list of its own. Main is never a row on the server and cannot be
- * removed or renamed; removing the last other tab takes the strip away again.
+ * an empty list of its own. Main is never a row on the server: it is the
+ * notes that are in no live tab, so it cannot be removed, and its name is kept
+ * on the project instead. Removing the last other tab takes the strip away.
  *
  * Each tab is a link to its own address, so a reload and the back arrow from a
  * note both land on the tab that was open. The open tab's name is a button
  * instead: clicking it turns the name into a field, the same move as the
- * project name in the bar. The remove button sits beside the name, not inside
- * it: a control nested in a link is neither reliably clickable nor announced
- * properly. */
+ * project name in the bar. Removing is on the tab's own right-click menu, so
+ * nothing sits beside the name at all.
+ *
+ * The plus is invisible until the strip is hovered, or something inside it
+ * takes keyboard focus. It holds its space either way, so nothing shifts when
+ * it appears. */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Tab } from "../../shared/types";
 
 export function TabStrip({
 	projectId,
+	mainName,
 	tabs,
 	activeId,
 	onAdd,
@@ -25,19 +30,27 @@ export function TabStrip({
 	onRemove,
 }: {
 	projectId: string;
+	/** What the first tab is called: "Main" until it is renamed. */
+	mainName: string;
 	tabs: Tab[];
 	/** The open tab, or null for Main. */
 	activeId: string | null;
 	onAdd: () => void;
-	/** Rejects when the name could not be saved, so the field can say so. */
-	onRename: (id: string, name: string) => Promise<void>;
+	/** A null id renames the first tab. Rejects when the name could not be
+	 *  saved, so the field can say so where it sits. */
+	onRename: (id: string | null, name: string) => Promise<void>;
 	onRemove: (id: string) => void;
 }) {
 	return (
-		<div className="mb-3 flex flex-wrap items-center gap-1">
+		<div className="group flex flex-wrap items-center gap-1">
 			{tabs.length > 0 && (
 				<>
-					<TabChip name="Main" to={`/p/${projectId}`} active={activeId === null} />
+					<TabChip
+						name={mainName}
+						to={`/p/${projectId}`}
+						active={activeId === null}
+						onRename={(name) => onRename(null, name)}
+					/>
 					{tabs.map((tab) => (
 						<TabChip
 							key={tab.id}
@@ -51,24 +64,30 @@ export function TabStrip({
 				</>
 			)}
 
+			{/* Built from the chip's own two numbers, so the two boxes are the same
+			    height by construction rather than by a measurement that can drift:
+			    6px of padding around a 27px line box, which is what 18px text sets.
+			    That makes it 39 square, and the icon sits centred inside it. */}
 			<button
 				type="button"
 				aria-label="Add tab"
 				onClick={onAdd}
-				className="flex size-8 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-hover hover:text-text"
+				className="flex shrink-0 items-center cursor-pointer justify-center rounded-pill p-[6px] text-muted opacity-0 transition-opacity duration-[144ms] ease-out group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface-hover hover:text-text focus-visible:opacity-100"
 			>
-				<svg
-					viewBox="0 0 24 24"
-					aria-hidden="true"
-					className="size-4"
-					fill="none"
-					stroke="currentColor"
-					strokeWidth="2"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				>
-					<path d="M12 5v14M5 12h14" />
-				</svg>
+				<span className="flex size-[27px] items-center justify-center">
+					<svg
+						viewBox="0 0 24 24"
+						aria-hidden="true"
+						className="size-5"
+						fill="none"
+						stroke="currentColor"
+						strokeWidth="2"
+						strokeLinecap="round"
+						strokeLinejoin="round"
+					>
+						<path d="M12 5v14M5 12h14" />
+					</svg>
+				</span>
 			</button>
 		</div>
 	);
@@ -84,7 +103,6 @@ function TabChip({
 	name: string;
 	to: string;
 	active: boolean;
-	/** Left out on Main, which cannot be renamed. */
 	onRename?: (name: string) => Promise<void>;
 	/** Left out on Main, which cannot be removed. */
 	onRemove?: () => void;
@@ -93,9 +111,36 @@ function TabChip({
 	const [draft, setDraft] = useState(name);
 	const [failed, setFailed] = useState(false);
 
-	const nameClass = `bidi flex h-8 items-center truncate text-sm font-medium ${
-		onRemove === undefined ? "px-3" : "pr-1 pl-3"
-	}`;
+	/* The chip owns the padding, so the name inside carries none of its own. */
+	const nameClass = "bidi min-w-0 truncate text-[18px] font-medium";
+
+	/* Removing lives on the right-click menu, so the strip carries no button
+	   for it and stays quiet. Main has no menu, and right-clicking it gives the
+	   browser's own. The keyboard reaches this the way it reaches any context
+	   menu, with the menu key or Shift+F10 on the focused tab. */
+	const [menuOpen, setMenuOpen] = useState(false);
+	const chip = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (!menuOpen) return;
+		function onPointerDown(event: PointerEvent) {
+			if (chip.current !== null && !chip.current.contains(event.target as Node)) {
+				setMenuOpen(false);
+			}
+		}
+		function onKey(event: KeyboardEvent) {
+			if (event.key === "Escape") {
+				event.stopPropagation();
+				setMenuOpen(false);
+			}
+		}
+		document.addEventListener("pointerdown", onPointerDown);
+		document.addEventListener("keydown", onKey, true);
+		return () => {
+			document.removeEventListener("pointerdown", onPointerDown);
+			document.removeEventListener("keydown", onKey, true);
+		};
+	}, [menuOpen]);
 
 	function startEditing() {
 		setDraft(name);
@@ -124,7 +169,13 @@ function TabChip({
 
 	return (
 		<div
-			className={`flex h-8 items-center rounded-card ${
+			ref={chip}
+			onContextMenu={(event) => {
+				if (onRemove === undefined) return;
+				event.preventDefault();
+				setMenuOpen(true);
+			}}
+			className={`relative flex items-center rounded-card px-4 py-[6px] transition-colors duration-[144ms] ease-out ${
 				active ? "bg-card text-text" : "text-muted hover:bg-surface-hover hover:text-text"
 			}`}
 		>
@@ -144,9 +195,9 @@ function TabChip({
 							setEditing(false);
 						}
 					}}
-					className={`bidi h-8 bg-transparent pl-3 text-sm font-medium outline-none ${
-						onRemove === undefined ? "pr-3" : "pr-1"
-					} ${failed ? "text-danger" : "text-text"}`}
+					className={`bidi min-w-0 bg-transparent text-[18px] font-medium outline-none ${
+						failed ? "text-danger" : "text-text"
+					}`}
 				/>
 			) : active && onRename !== undefined ? (
 				<button
@@ -154,7 +205,7 @@ function TabChip({
 					aria-label={`Rename ${name}`}
 					aria-current="page"
 					onClick={startEditing}
-					className={nameClass}
+					className={`${nameClass} cursor-text`}
 				>
 					{name}
 				</button>
@@ -163,26 +214,24 @@ function TabChip({
 					{name}
 				</Link>
 			)}
-			{onRemove !== undefined && (
-				<button
-					type="button"
-					aria-label={`Remove ${name}`}
-					onClick={onRemove}
-					className="flex size-8 shrink-0 items-center justify-center rounded-card text-muted hover:text-text"
+			{menuOpen && onRemove !== undefined && (
+				<div
+					role="menu"
+					className="absolute top-full left-0 z-20 mt-1 w-36 overflow-hidden rounded-card border border-border bg-surface shadow-raised"
 				>
-					<svg
-						viewBox="0 0 24 24"
-						aria-hidden="true"
-						className="size-4"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
+					<button
+						type="button"
+						role="menuitem"
+						autoFocus
+						onClick={() => {
+							setMenuOpen(false);
+							onRemove();
+						}}
+						className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-danger hover:bg-surface-hover"
 					>
-						<path d="M18 6 6 18M6 6l12 12" />
-					</svg>
-				</button>
+						Remove
+					</button>
+				</div>
 			)}
 		</div>
 	);

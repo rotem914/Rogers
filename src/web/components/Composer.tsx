@@ -296,8 +296,8 @@ export function Composer({
 				setDragging(false);
 				void addFiles(imageFiles(event.dataTransfer));
 			}}
-			className={`rounded-[10px] border bg-surface shadow-raised ${
-				dragging ? "border-accent" : "border-border"
+			className={`rounded-[10px] bg-card shadow-raised ${
+				dragging ? "ring-2 ring-accent" : ""
 			}`}
 		>
 			<div className="flex items-start gap-2 px-4 pt-3">

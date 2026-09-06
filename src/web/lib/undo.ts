@@ -82,3 +82,51 @@ export function undoShortcut(event: KeyboardEvent): "undo" | "redo" | null {
 	if ((key === "KeyY" || key === "y") && !event.shiftKey) return "redo";
 	return null;
 }
+
+/* ------------------------------------------------------------------- tabs
+ *
+ * A project's tabs undo differently from a note. There is no snapshot to put
+ * back on screen: adding, removing and renaming are three actions, each with
+ * an opposite, and taking one back means asking the Worker to do the opposite.
+ * So this keeps the actions themselves, and the page turns one into a request.
+ *
+ * A step is taken off the stack only once it actually went through, so a
+ * failed undo leaves the history alone and Ctrl+Z tries the same step again. */
+
+export type TabAction =
+	| { kind: "add"; id: string }
+	| { kind: "remove"; id: string }
+	/** A null id is the first tab, which has no row and is renamed on the project. */
+	| { kind: "rename"; id: string | null; from: string; to: string };
+
+export class TabHistory {
+	private past: TabAction[] = [];
+	private future: TabAction[] = [];
+
+	/** An action by the person. It clears the redo trail, as an edit does. */
+	record(action: TabAction): void {
+		this.past.push(action);
+		if (this.past.length > LIMIT) this.past.shift();
+		this.future = [];
+	}
+
+	/** What Ctrl+Z would take back, without taking it back yet. */
+	nextUndo(): TabAction | null {
+		return this.past.length === 0 ? null : this.past[this.past.length - 1];
+	}
+
+	nextRedo(): TabAction | null {
+		return this.future.length === 0 ? null : this.future[this.future.length - 1];
+	}
+
+	/** Called once that undo really happened. */
+	commitUndo(): void {
+		const action = this.past.pop();
+		if (action !== undefined) this.future.push(action);
+	}
+
+	commitRedo(): void {
+		const action = this.future.pop();
+		if (action !== undefined) this.past.push(action);
+	}
+}

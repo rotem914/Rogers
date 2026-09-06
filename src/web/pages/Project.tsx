@@ -13,11 +13,13 @@ import type {
 	Project as ProjectType,
 	ReorderNotesBody,
 	Tab,
+	UpdateProjectBody,
 	UpdateTabBody,
 } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { useApi } from "../lib/useApi";
 import { arrange, moved } from "../lib/reorder";
+import { TabHistory, undoShortcut } from "../lib/undo";
 import { TopBar } from "../components/TopBar";
 import { NoteRow } from "../components/NoteRow";
 import { Composer, type ComposerHandle } from "../components/Composer";
@@ -81,6 +83,159 @@ export function Project() {
 		}
 	}, [tabs.data, setSearchParams]);
 
+	/* Adding, renaming and removing a tab, each recorded so Ctrl+Z can take it
+	   back. They live up here, above the early returns below, because the undo
+	   listener is registered up here too and must never reach for something the
+	   loading render never created. */
+	const [tabHistory] = useState(() => new TabHistory());
+
+	async function archiveTab(target: string) {
+		await apiFetch<Tab>(`/api/projects/${id}/tabs/${target}`, { method: "DELETE" });
+	}
+
+	/* The Worker has no "unremove": a removed tab is restored by clearing the
+	   timestamp that removed it, which brings back every note that was in it,
+	   because removing never rewrote one. */
+	async function restoreTab(target: string) {
+		const body: UpdateTabBody = { archived: false };
+		await apiFetch<Tab>(`/api/projects/${id}/tabs/${target}`, {
+			method: "PATCH",
+			body: JSON.stringify(body),
+		});
+	}
+
+	async function setTabName(target: string, name: string) {
+		const body: UpdateTabBody = { name };
+		await apiFetch<Tab>(`/api/projects/${id}/tabs/${target}`, {
+			method: "PATCH",
+			body: JSON.stringify(body),
+		});
+	}
+
+	/* The first tab has no row of its own, so its name is a field on the
+	   project. Everything else about it stays what it has always been: the
+	   notes that are in no live tab. */
+	async function setMainName(name: string) {
+		const body: UpdateProjectBody = { mainTabName: name };
+		await apiFetch<ProjectType>(`/api/projects/${id}`, {
+			method: "PATCH",
+			body: JSON.stringify(body),
+		});
+	}
+
+	/** What the first tab is called right now. */
+	const mainName = project?.mainTabName ?? "Main";
+
+	/* Adding turns the project's own list into "Main" and opens the new tab
+	   beside it. The id is made here, like a note's, so a request applied and
+	   then lost on the way back is the same tab when it is retried. */
+	async function addTab() {
+		const body: CreateTabBody = { id: crypto.randomUUID() };
+		setTabFailed(null);
+		try {
+			const tab = await apiFetch<Tab>(`/api/projects/${id}/tabs`, {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+			tabHistory.record({ kind: "add", id: tab.id });
+			pendingTab.current = tab.id;
+			tabs.refetch();
+		} catch {
+			setTabFailed("Could not add the tab.");
+		}
+	}
+
+	/* Renaming: the chip owns the field, this sends the name and refreshes the
+	   strip. It throws on failure so the field can say so where it sits. */
+	async function renameTab(renamedId: string | null, name: string) {
+		const from =
+			renamedId === null
+				? mainName
+				: tabs.data?.find((tab) => tab.id === renamedId)?.name;
+		if (renamedId === null) await setMainName(name);
+		else await setTabName(renamedId, name);
+		if (from !== undefined) {
+			tabHistory.record({ kind: "rename", id: renamedId, from, to: name });
+		}
+		if (renamedId === null) projects.refetch();
+		else tabs.refetch();
+	}
+
+	/* Removing archives the tab; its notes show in Main from then on. */
+	async function removeTab(removedId: string) {
+		setTabFailed(null);
+		try {
+			await archiveTab(removedId);
+		} catch {
+			setTabFailed("Could not remove the tab.");
+			return;
+		}
+		tabHistory.record({ kind: "remove", id: removedId });
+		tabs.refetch();
+		/* The removed tab was the open one: back to Main, and the new address is
+		   what refetches the list. Otherwise Main may have gained its notes. */
+		if (removedId === tabId) setSearchParams({}, { replace: true });
+		else notes.refetch();
+	}
+
+	/* One step back, or forward. Each action has exactly one opposite, and the
+	   step leaves the history only once the Worker agreed, so a failed undo can
+	   simply be pressed again. */
+	async function travelTabs(step: "undo" | "redo") {
+		const action = step === "undo" ? tabHistory.nextUndo() : tabHistory.nextRedo();
+		if (action === null) return;
+		setTabFailed(null);
+
+		/* Taking back an add removes, and taking back a remove restores; redo is
+		   the same pair the other way round. */
+		const removing = action.kind !== "rename" && (action.kind === "add") === (step === "undo");
+
+		try {
+			if (action.kind === "rename") {
+				const name = step === "undo" ? action.from : action.to;
+				if (action.id === null) await setMainName(name);
+				else await setTabName(action.id, name);
+			} else if (removing) {
+				await archiveTab(action.id);
+			} else {
+				await restoreTab(action.id);
+			}
+		} catch {
+			setTabFailed(step === "undo" ? "Could not undo that." : "Could not redo that.");
+			return;
+		}
+
+		if (step === "undo") tabHistory.commitUndo();
+		else tabHistory.commitRedo();
+
+		if (action.kind === "rename" && action.id === null) projects.refetch();
+		else tabs.refetch();
+		/* A tab that just went away cannot stay the open one. */
+		if (removing && action.id === tabId) setSearchParams({}, { replace: true });
+		else notes.refetch();
+	}
+
+	/* Ctrl+Z and Ctrl+Shift+Z step through the tab actions, but only when the
+	   keystroke belongs to the page itself: a field carries its own undo, and
+	   the composer keeps its own stack while it is open. */
+	useEffect(() => {
+		function onKey(event: KeyboardEvent) {
+			const step = undoShortcut(event);
+			if (step === null || id === undefined) return;
+			const target = event.target as HTMLElement | null;
+			const typing =
+				target !== null &&
+				(target.tagName === "INPUT" ||
+					target.tagName === "TEXTAREA" ||
+					target.isContentEditable);
+			if (typing) return;
+			event.preventDefault();
+			void travelTabs(step);
+		}
+		document.addEventListener("keydown", onKey);
+		return () => document.removeEventListener("keydown", onKey);
+	});
+
 	/* N opens the composer, unless the keystroke belongs to a field. */
 	useEffect(() => {
 		function onKey(event: KeyboardEvent) {
@@ -125,73 +280,26 @@ export function Project() {
 	const others = shown?.filter((note) => note.pinnedAt === null) ?? [];
 	const sectioned = pinned.length > 0;
 
-	/* Narrowed above; captured so the two functions below can use it. */
-	const projectId = project.id;
-
-	/* Adding turns the project's own list into "Main" and opens the new tab
-	   beside it. The id is made here, like a note's, so a request applied and
-	   then lost on the way back is the same tab when it is retried. */
-	async function addTab() {
-		const body: CreateTabBody = { id: crypto.randomUUID() };
-		setTabFailed(null);
-		try {
-			const tab = await apiFetch<Tab>(`/api/projects/${projectId}/tabs`, {
-				method: "POST",
-				body: JSON.stringify(body),
-			});
-			pendingTab.current = tab.id;
-			tabs.refetch();
-		} catch {
-			setTabFailed("Could not add the tab.");
-		}
-	}
-
-	/* Renaming: the chip owns the field, this sends the name and refreshes the
-	   strip. It throws on failure so the field can say so where it sits. */
-	async function renameTab(renamedId: string, name: string) {
-		const body: UpdateTabBody = { name };
-		await apiFetch<Tab>(`/api/projects/${projectId}/tabs/${renamedId}`, {
-			method: "PATCH",
-			body: JSON.stringify(body),
-		});
-		tabs.refetch();
-	}
-
-	/* Removing archives the tab; its notes show in Main from then on. */
-	async function removeTab(removedId: string) {
-		setTabFailed(null);
-		try {
-			await apiFetch<Tab>(`/api/projects/${projectId}/tabs/${removedId}`, {
-				method: "DELETE",
-			});
-		} catch {
-			setTabFailed("Could not remove the tab.");
-			return;
-		}
-		tabs.refetch();
-		/* The removed tab was the open one: back to Main, and the new address is
-		   what refetches the list. Otherwise Main may have gained its notes. */
-		if (removedId === tabId) setSearchParams({}, { replace: true });
-		else notes.refetch();
-	}
 
 	return (
 		<>
 			<TopBar
 				backTo="/"
 				title={<ProjectName project={project} onRenamed={projects.refetch} />}
+				center={
+					<TabStrip
+						projectId={project.id}
+						mainName={mainName}
+						tabs={tabs.data ?? []}
+						activeId={tabId}
+						onAdd={() => void addTab()}
+						onRename={renameTab}
+						onRemove={(removedId) => void removeTab(removedId)}
+					/>
+				}
 			/>
 
 			<main className="mx-auto max-w-[752px] px-4 pt-14 pb-6">
-				<TabStrip
-					projectId={project.id}
-					tabs={tabs.data ?? []}
-					activeId={tabId}
-					onAdd={() => void addTab()}
-					onRename={renameTab}
-					onRemove={(removedId) => void removeTab(removedId)}
-				/>
-
 				<div className="mb-6">
 					<Composer
 						ref={composer}

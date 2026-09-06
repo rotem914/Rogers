@@ -30,6 +30,11 @@ export type Project = {
 	color: string | null;
 	/** Live notes inside it, so the tile can say "12 notes" without a second call. */
 	noteCount: number;
+	/**
+	 * What the first tab is called. Null means it has never been renamed and
+	 * reads as "Main". It has no tab row, so its name lives on the project.
+	 */
+	mainTabName: string | null;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -87,6 +92,8 @@ export type UpdateProjectBody = {
 	name?: string;
 	/** Null clears the accent back to the default surface. */
 	color?: string | null;
+	/** Renames the first tab. Null puts it back to "Main". */
+	mainTabName?: string | null;
 };
 
 /**
@@ -114,9 +121,15 @@ export type CreateTabBody = {
 	name?: string;
 };
 
-/** A rename. Main has no row, so it cannot be renamed. */
+/**
+ * A rename, or a removal taken back.
+ *
+ * Main has no row, so it cannot be renamed. `archived: false` is how undo
+ * brings a removed tab back, with every note that was in it.
+ */
 export type UpdateTabBody = {
 	name?: string;
+	archived?: boolean;
 };
 
 export type UpdateNoteBody = {

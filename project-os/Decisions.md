@@ -66,6 +66,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-05 · Rogers lives on rogers.rotem-e.com, not on workers.dev
 - 2026-09-05 · Undo is the note's own stack, with pictures in it, not the browser's
 - 2026-09-06 · Main is not a row, and a removed tab's notes fall back to Main
+- 2026-09-06 · Main's name lives on the project, and tab undo replays actions
 
 ---
 
@@ -365,3 +366,61 @@ is a grouping, not content, and archiving content behind a grouping's remove
 button is how a notes app eats notes. Revisit if tabs get their own restore
 screen, or if moving notes between tabs arrives, which would make option 3 a
 real choice.
+
+---
+## 2026-09-06 - Main's name lives on the project, and tab undo replays actions
+
+### Context
+
+Two questions came out of the same sitting. Rotem asked to rename the first
+tab, which the entry above had deliberately left without a row of its own. He
+also asked for undo and redo over adding, removing and renaming a tab, in a
+project whose only undo so far was the note editor's stack of snapshots.
+
+### Options
+
+For the name:
+
+1. Give Main a real tab row, created when the first tab is added, and write
+   that id onto every note that had none.
+2. Keep Main as the absence of a tab and store its name on the project, in one
+   nullable column, null reading as "Main".
+
+For the undo:
+
+3. Reuse the note's `UndoStack` by snapshotting the whole tab list and
+   replacing it on undo.
+4. Keep the actions themselves, and undo one by asking the Worker to do its
+   opposite.
+
+### Decision
+
+Options 2 and 4, taken by the assistant.
+
+`migrations/0005_main_tab_name.sql` adds `main_tab_name` to projects: additive,
+nullable, no row rewritten, and Main stays exactly what it was, the notes in no
+live tab. Option 1 was rejected because it would rewrite every existing note
+row to say what is already true, which is the one thing migrations here may not
+do.
+
+`TabHistory` in `src/web/lib/undo.ts` keeps a list of `add`, `remove` and
+`rename` actions. Undoing an add archives the tab, undoing a remove restores it,
+and undoing a rename sends the old name. Restoring needed a way back that did
+not exist, so the tab route learned `archived: false`; because removing never
+touched a note, clearing that one timestamp brings the tab back with every note
+still in it. A step leaves the history only once the Worker agreed, so a failed
+undo can simply be pressed again.
+
+### Consequences
+
+Renaming Main is a project edit, not a tab edit, so anything that later lists
+tabs must remember that the first one is not among them. A snapshot undo
+(option 3) would have had to invent ids to recreate removed tabs, and could not
+have restored their notes at all; replaying actions costs one request per step
+instead.
+
+Two limits are worth knowing. Ctrl+Z on the project page steps through tabs
+whenever the keystroke is not inside a field, so with the composer open and
+focus off its fields, both stacks hear the same press. And the history lives in
+the page, so leaving the project and coming back starts it empty, while the
+changes themselves are already saved.

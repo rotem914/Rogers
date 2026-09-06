@@ -91,33 +91,61 @@ projectTabs.patch("/:id", async (c) => {
 	}
 
 	const existing = await c.env.DB.prepare(ONE_SQL).bind(id).first<TabRow>();
-
-	/* A removed tab is not renameable: nothing on screen can reach one, so a
-	   rename arriving for it means the strip is working from a stale list. */
-	if (
-		existing === null ||
-		existing.project_id !== projectId ||
-		existing.archived_at !== null
-	) {
+	if (existing === null || existing.project_id !== projectId) {
 		return c.json<ApiErrorBody>({ error: "No such tab." }, 404);
 	}
 
 	const body = await readJson<UpdateTabBody>(c.req.raw);
 
+	/* A removed tab can only be brought back, never renamed: nothing on screen
+	   can reach one, so a rename arriving for it means the strip is working from
+	   a stale list. Undo is the one thing that reaches a removed tab. */
+	const restoring = body !== null && body.archived === false;
+	if (existing.archived_at !== null && !restoring) {
+		return c.json<ApiErrorBody>({ error: "No such tab." }, 404);
+	}
+
+	/* Only the fields the request carries are written, and `in` is the test.
+	   Assigning every column would let a rename resurrect a removed tab, or a
+	   restore rename it back to something older. */
+	const assignments: string[] = [];
+	const values: unknown[] = [];
+
+	if (body !== null && "name" in body) {
+		const name = typeof body.name === "string" ? body.name.trim() : "";
+		if (name === "") {
+			return c.json<ApiErrorBody>({ error: "A tab needs a name." }, 400);
+		}
+		assignments.push("name = ?");
+		values.push(name);
+	}
+
+	if (body !== null && "archived" in body) {
+		if (typeof body.archived !== "boolean") {
+			return c.json<ApiErrorBody>({ error: "Archived must be true or false." }, 400);
+		}
+		/* Removing again, or restoring what is already live, changes nothing. */
+		if (body.archived && existing.archived_at === null) {
+			assignments.push("archived_at = ?");
+			values.push(new Date().toISOString());
+		} else if (!body.archived && existing.archived_at !== null) {
+			/* The notes were never rewritten, so they come back with it. */
+			assignments.push("archived_at = NULL");
+		}
+	}
+
 	/* A request that names nothing changes nothing, and answers with the tab as
 	   it stands rather than an error. */
-	if (body === null || !("name" in body)) {
+	if (assignments.length === 0) {
 		return c.json<Tab>(toTab(existing));
 	}
 
-	const name = typeof body.name === "string" ? body.name.trim() : "";
-	if (name === "") {
-		return c.json<ApiErrorBody>({ error: "A tab needs a name." }, 400);
-	}
-
 	const now = new Date().toISOString();
-	await c.env.DB.prepare(`UPDATE tabs SET name = ?, updated_at = ? WHERE id = ?`)
-		.bind(name, now, id)
+	assignments.push("updated_at = ?");
+	values.push(now);
+
+	await c.env.DB.prepare(`UPDATE tabs SET ${assignments.join(", ")} WHERE id = ?`)
+		.bind(...values, id)
 		.run();
 
 	return c.json<Tab>(toTab(await rereadTab(c.env.DB, id)));
