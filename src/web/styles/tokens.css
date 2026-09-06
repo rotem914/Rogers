@@ -9,12 +9,15 @@
 
 @theme {
 	/* Ground and surfaces, darkest to lightest. */
-	--color-bg: #14141A; /* the page itself */
+	--color-bg: #111217; /* the page itself */
 	--color-surface: #222326; /* cards, the composer, the top bar */
-	--color-card: #23242f; /* the project tile, the note row, the collapsed composer */
-	--color-card-hover: #2b2d3b; /* one of those three under the pointer */
+	--color-card: #21222C; /* every card: the project tile, the note row, the composer open or closed, the open tab */
+	--color-card-hover: #252632; /* one of those under the pointer */
 	--color-surface-hover: #2a2b2f; /* a row or card under the pointer */
 	--color-border: #3a3c40; /* hairlines; the only separator we use */
+	--color-card-edge: #22242F; /* the outline of the new-project tile */
+	--color-new-tile-hover: #16171D; /* the new-project tile under the pointer */
+	--color-new-tile-icon: #59618B; /* the plus drawn inside it */
 
 	/* Type. */
 	--color-text: #e6e7e9; /* body and titles */

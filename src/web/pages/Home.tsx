@@ -216,9 +216,21 @@ function NewProjectTile({ onCreated }: { onCreated: () => void }) {
 				type="button"
 				onClick={() => setNaming(true)}
 				aria-label="New project"
-				className="flex aspect-4/3 items-center justify-center rounded-card border border-dashed border-border text-2xl text-muted hover:border-accent hover:text-accent max-[430px]:aspect-auto max-[430px]:h-[144px]"
+				className="flex aspect-4/3 cursor-pointer items-center justify-center rounded-card border-2 border-card-edge text-2xl text-new-tile-icon transition-colors duration-[144ms] ease-out hover:bg-new-tile-hover max-[430px]:aspect-auto max-[430px]:h-[144px]"
 			>
-				+
+				{/* The same plus the tab strip uses, so one shape means "add". */}
+				<svg
+					viewBox="0 0 24 24"
+					aria-hidden="true"
+					className="size-6"
+					fill="none"
+					stroke="currentColor"
+					strokeWidth="2"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+				>
+					<path d="M12 5v14M5 12h14" />
+				</svg>
 			</button>
 		);
 	}
