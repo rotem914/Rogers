@@ -55,9 +55,13 @@ export function Note() {
 function Editor({ note }: { note: NoteType }) {
 	const navigate = useNavigate();
 
-	/* Where the back arrow goes. Deliberately not browser history: a note opened
+	/* Where the back arrow goes: the tab the note is in, so the list you left is
+	   the list you come back to. Deliberately not browser history: a note opened
 	   from a link has none. */
-	const backTo = `/p/${note.projectId}`;
+	const backTo =
+		note.tabId === null
+			? `/p/${note.projectId}`
+			: `/p/${note.projectId}?tab=${note.tabId}`;
 
 	const [title, setTitle] = useState(note.title);
 	const [body, setBody] = useState(note.body);

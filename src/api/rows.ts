@@ -7,7 +7,7 @@
  * returns a row directly would leak archived_at and hand the app a JSON string
  * where it expects an array, so routes map, always. */
 
-import type { Note, NotePreview, Project } from "../shared/types";
+import type { Note, NotePreview, Project, Tab } from "../shared/types";
 
 export type ProjectRow = {
 	id: string;
@@ -21,9 +21,20 @@ export type ProjectRow = {
 /** A project row with its live note count counted in the same query. */
 export type ProjectListRow = ProjectRow & { note_count: number };
 
+export type TabRow = {
+	id: string;
+	project_id: string;
+	name: string;
+	created_at: string;
+	updated_at: string;
+	archived_at: string | null;
+};
+
 export type NoteRow = {
 	id: string;
 	project_id: string;
+	/** The tab the note is in. Null means Main, the project's own list. */
+	tab_id: string | null;
 	title: string;
 	body: string;
 	/** A JSON array of R2 keys. Always a string here, never an array. */
@@ -47,10 +58,21 @@ export function toProject(row: ProjectListRow): Project {
 	};
 }
 
+export function toTab(row: TabRow): Tab {
+	return {
+		id: row.id,
+		projectId: row.project_id,
+		name: row.name,
+		createdAt: row.created_at,
+		updatedAt: row.updated_at,
+	};
+}
+
 export function toNote(row: NoteRow): Note {
 	return {
 		id: row.id,
 		projectId: row.project_id,
+		tabId: row.tab_id,
 		title: row.title,
 		body: row.body,
 		images: parseImages(row.images),

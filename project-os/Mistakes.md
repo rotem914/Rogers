@@ -65,6 +65,7 @@ Mistakes in HOW you worked:
 | Date | What I did | What was wanted | Home if it repeats | Times |
 |---|---|---|---|---|
 | 2026-09-04 | Ran a shell command whose text contained backticks, so bash executed a rollback line from inside it and reverted my own uncommitted work | Text carrying backticks or dollar signs is written to a file through a quoted heredoc, never pasted inside a double-quoted shell string | CLAUDE.md working rules, rule 4 | 1 |
+| 2026-09-05 | Never opened `project-os/Conversations.md` at pickup and wrote a whole session of replies in my own layout: prose paragraphs, no `----` dividers, no `# H1` sections, sentences joined by commas | Read the project-os docs in full at pickup, before the first reply, and shape every reply by that file: dividers, H1 sections, one sentence per line, 3 lines of 16 words | `CLAUDE.md` "Read these before you work" | 1 |
 
 ## Promoted
 

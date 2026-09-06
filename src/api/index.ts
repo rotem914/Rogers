@@ -6,6 +6,7 @@ import { Hono } from "hono";
 import type { ApiErrorBody, Health } from "../shared/types";
 import { projects } from "./projects";
 import { notes, projectNotes } from "./notes";
+import { projectTabs } from "./tabs";
 import { images } from "./images";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -14,6 +15,7 @@ app.get("/api/health", (c) => c.json<Health>({ ok: true, service: "rogers" }));
 
 app.route("/api/projects", projects);
 app.route("/api/projects/:projectId/notes", projectNotes);
+app.route("/api/projects/:projectId/tabs", projectTabs);
 app.route("/api/notes", notes);
 app.route("/api", images);
 

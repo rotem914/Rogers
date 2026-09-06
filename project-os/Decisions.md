@@ -65,6 +65,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-04 · A dragged note order is per section, and an undragged note sorts first
 - 2026-09-05 · Rogers lives on rogers.rotem-e.com, not on workers.dev
 - 2026-09-05 · Undo is the note's own stack, with pictures in it, not the browser's
+- 2026-09-06 · Main is not a row, and a removed tab's notes fall back to Main
 
 ---
 
@@ -321,3 +322,46 @@ the end of a field after an undo rather than where the change was; option 3
 is what fixes that, and it was not worth its weight for a notes app. There is
 no on-screen control yet, so on the phone the feature does not exist until
 buttons are added.
+
+---
+## 2026-09-06 - Main is not a row, and a removed tab's notes fall back to Main
+
+### Context
+
+Rotem asked for tabs on the project page, each with its own list of notes:
+nothing until a plus is clicked, then the existing list becomes "Main" and
+"New tab" appears beside it, with a way to remove a tab. Two questions had to
+be answered: what Main is in the database, and where a removed tab's notes go,
+under the invariant that a notes app never loses a note.
+
+### Options
+
+1. Main is a real tab row, created with every project and backfilled for the
+   existing ones, and every note gets a tab id.
+2. Main is the absence of a tab: a null tab id, no row, and a project with no
+   tab rows shows no strip at all.
+3. On remove, move the tab's notes to Main by writing their tab id to null.
+4. On remove, archive the tab and leave its notes pointing at it; the list
+   query treats a note in no live tab as Main.
+5. On remove, archive the notes with the tab, the way archiving a project
+   hides its notes.
+
+### Decision
+
+Options 2 and 4, taken by the assistant. Main is null, so the migration
+touches no row and a project with no tabs reads exactly as it did before.
+Removing a tab writes one timestamp to the tab row; Main's query is "every
+note in no live tab", so the notes reappear there at once, and clearing the
+tab's archived_at brings the tab back with every note still in it.
+
+### Consequences
+
+A note is never hidden by removing a tab, and a mis-click costs one row write
+that is fully reversible. Main cannot be removed or renamed, because it is not
+a thing in the database. The cost is a subquery in Main's list and one extra
+round trip on the project page, since the notes wait for the tabs so a tab's
+address never flashes Main's list first. Option 5 was rejected because a tab
+is a grouping, not content, and archiving content behind a grouping's remove
+button is how a notes app eats notes. Revisit if tabs get their own restore
+screen, or if moving notes between tabs arrives, which would make option 3 a
+real choice.

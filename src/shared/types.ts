@@ -34,6 +34,20 @@ export type Project = {
 	updatedAt: string;
 };
 
+/**
+ * A tab inside a project, with a list of its own.
+ *
+ * "Main" is never sent: it is the project's own list, the one every note has
+ * always been in, so a project with no tabs has none of these at all.
+ */
+export type Tab = {
+	id: string;
+	projectId: string;
+	name: string;
+	createdAt: string;
+	updatedAt: string;
+};
+
 /** One row in a project's list. Carries only what the row draws. */
 export type NotePreview = {
 	id: string;
@@ -50,6 +64,8 @@ export type NotePreview = {
 export type Note = {
 	id: string;
 	projectId: string;
+	/** The tab the note is in. Null means Main, the project's own list. */
+	tabId: string | null;
 	title: string;
 	body: string;
 	images: string[];
@@ -88,6 +104,19 @@ export type CreateNoteBody = {
 	id?: string;
 	title?: string;
 	body?: string;
+	/** The tab to put it in. Left out, the note goes in Main. */
+	tabId?: string;
+};
+
+/** The id is optional for the same reason as a note's. The name defaults to "New tab". */
+export type CreateTabBody = {
+	id?: string;
+	name?: string;
+};
+
+/** A rename. Main has no row, so it cannot be renamed. */
+export type UpdateTabBody = {
+	name?: string;
 };
 
 export type UpdateNoteBody = {

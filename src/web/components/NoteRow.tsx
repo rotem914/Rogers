@@ -47,7 +47,7 @@ export function NoteRow({
 	}
 
 	return (
-		<div className="group relative rounded-[10px] border border-border bg-surface px-4 py-4 transition-colors duration-[144ms] ease-out hover:bg-surface-hover">
+		<div className="group relative rounded-[10px] bg-card px-4 py-4 transition-colors duration-[144ms] ease-out hover:bg-card-hover">
 			{/* Not draggable: a link drags its own address by default, and this one
 			    covers the row, so it would win over dragging the row itself into a
 			    new place in the list. */}

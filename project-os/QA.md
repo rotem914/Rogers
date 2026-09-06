@@ -230,6 +230,36 @@ Check a drag in two halves instead:
 Proven on 2026-09-04 on Home's project tiles: the mouse drag moved nothing, the
 dispatched sequence reordered the grid, saved, and survived a reload.
 
+## 10d. Tabs on a project page
+
+The strip above "Take a note…" is checked as one flow, in a throwaway project
+of your own, never in Rotem's:
+
+1. With no tabs there is no strip, only the plus: measure it at 32 by 32 with a
+   16 by 16 icon.
+2. Click the plus: Main and "New tab" appear, "New tab" is open, its address
+   carries `?tab=`, and it says "Nothing in this tab yet".
+3. Type a note in that tab, close the composer, reload: the note is there, and
+   Main does not have it.
+4. Open that note and press the back arrow: it lands on the tab, not on Main.
+5. Switch tabs: the previous tab's notes never show under the new tab's name,
+   not even for a frame.
+6. Remove a tab that has notes: they appear in Main. Remove the last tab: the
+   strip disappears.
+7. Load at 375 wide with several tabs: the strip wraps and the page has no
+   horizontal overflow.
+8. Before a deploy, the remote migration is applied first: Main's query reads
+   the tabs table and answers a 500 without it.
+9. Click the open tab's name: a field opens prefilled. Enter or a click outside
+   saves, Escape discards, and the name is back after a reload. Type a Hebrew
+   name through the browser, never through a shell (§10b).
+
+Two traps of the in-app browser pane, met on 2026-09-06: the key named `Return`
+did nothing where `Enter` worked, and `ctrl+a` did not select a field's text,
+so typed text is appended. Measure widths only while the pane is shown: a hidden
+pane reports a 0-wide viewport, and the "overflow" it then shows is the page's
+minimum width, not a defect.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

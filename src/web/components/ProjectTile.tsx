@@ -81,7 +81,7 @@ export function ProjectTile({
 
 	return (
 		<div
-			className="group relative flex aspect-4/3 flex-col justify-between rounded-card border border-border bg-surface p-6 transition-colors duration-[144ms] ease-out hover:bg-surface-hover max-[430px]:aspect-auto max-[430px]:h-[144px]"
+			className="group relative flex aspect-4/3 flex-col justify-between rounded-card bg-card p-6 transition-colors duration-[144ms] ease-out hover:bg-card-hover max-[430px]:aspect-auto max-[430px]:h-[144px]"
 			style={border}
 		>
 			{mode === "renaming" ? (

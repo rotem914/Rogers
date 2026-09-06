@@ -6,11 +6,14 @@
  * order of its own. */
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import type {
+	CreateTabBody,
 	NotePreview,
 	Project as ProjectType,
 	ReorderNotesBody,
+	Tab,
+	UpdateTabBody,
 } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { useApi } from "../lib/useApi";
@@ -18,6 +21,7 @@ import { arrange, moved } from "../lib/reorder";
 import { TopBar } from "../components/TopBar";
 import { NoteRow } from "../components/NoteRow";
 import { Composer, type ComposerHandle } from "../components/Composer";
+import { TabStrip } from "../components/TabStrip";
 import { Toast } from "../components/Feedback";
 
 export function Project() {
@@ -29,12 +33,53 @@ export function Project() {
 	const projects = useApi<ProjectType[]>("/api/projects");
 	const project = projects.data?.find((candidate) => candidate.id === id) ?? null;
 
+	/* The tabs, and which one the address names. None means Main, the project's
+	   own list. A tab the address names but the list does not have is Main too:
+	   it was removed, or the link is stale. */
+	const tabs = useApi<Tab[]>(id === undefined ? null : `/api/projects/${id}/tabs`);
+	const [searchParams, setSearchParams] = useSearchParams();
+	const requestedTab = searchParams.get("tab");
+	const tabId = tabs.data?.find((tab) => tab.id === requestedTab)?.id ?? null;
+
+	/* The notes wait for the first answer about the tabs, so a tab's address
+	   never shows Main's notes for a frame first. A refetch of the tabs keeps
+	   the old list, so it does not blank the notes; a failed tabs call falls
+	   through to Main. */
+	const tabsPending = tabs.data === null && tabs.error === null;
 	const notes = useApi<NotePreview[]>(
-		id === undefined ? null : `/api/projects/${id}/notes`,
+		id === undefined || tabsPending
+			? null
+			: `/api/projects/${id}/notes${tabId === null ? "" : `?tab=${tabId}`}`,
 	);
 
 	const composer = useRef<ComposerHandle>(null);
 	const [orderFailed, setOrderFailed] = useState(false);
+	const [tabFailed, setTabFailed] = useState<string | null>(null);
+
+	/* Which list is on screen. The read hook keeps the old list while a new
+	   address loads, which is right for a refetch of the same tab and wrong for
+	   a switch: the last tab's notes would sit under the new tab's name until
+	   the answer came. So the list a switch started from is remembered and
+	   hidden until a fresh answer replaces it. Set during render on purpose:
+	   an effect runs after the commit that changed the tab, too late to hide
+	   anything. A failed answer keeps the old list hidden and shows the toast. */
+	const [left, setLeft] = useState<{ tab: string | null; list: NotePreview[] | null }>({
+		tab: tabId,
+		list: null,
+	});
+	if (left.tab !== tabId) setLeft({ tab: tabId, list: notes.data });
+	const shown = notes.data === left.list ? null : notes.data;
+
+	/* A tab just made is opened only once the refetched list knows it, so the
+	   address never names a tab the page cannot yet show. */
+	const pendingTab = useRef<string | null>(null);
+	useEffect(() => {
+		const pending = pendingTab.current;
+		if (pending !== null && tabs.data?.some((tab) => tab.id === pending)) {
+			pendingTab.current = null;
+			setSearchParams({ tab: pending });
+		}
+	}, [tabs.data, setSearchParams]);
 
 	/* N opens the composer, unless the keystroke belongs to a field. */
 	useEffect(() => {
@@ -76,9 +121,59 @@ export function Project() {
 		);
 	}
 
-	const pinned = notes.data?.filter((note) => note.pinnedAt !== null) ?? [];
-	const others = notes.data?.filter((note) => note.pinnedAt === null) ?? [];
+	const pinned = shown?.filter((note) => note.pinnedAt !== null) ?? [];
+	const others = shown?.filter((note) => note.pinnedAt === null) ?? [];
 	const sectioned = pinned.length > 0;
+
+	/* Narrowed above; captured so the two functions below can use it. */
+	const projectId = project.id;
+
+	/* Adding turns the project's own list into "Main" and opens the new tab
+	   beside it. The id is made here, like a note's, so a request applied and
+	   then lost on the way back is the same tab when it is retried. */
+	async function addTab() {
+		const body: CreateTabBody = { id: crypto.randomUUID() };
+		setTabFailed(null);
+		try {
+			const tab = await apiFetch<Tab>(`/api/projects/${projectId}/tabs`, {
+				method: "POST",
+				body: JSON.stringify(body),
+			});
+			pendingTab.current = tab.id;
+			tabs.refetch();
+		} catch {
+			setTabFailed("Could not add the tab.");
+		}
+	}
+
+	/* Renaming: the chip owns the field, this sends the name and refreshes the
+	   strip. It throws on failure so the field can say so where it sits. */
+	async function renameTab(renamedId: string, name: string) {
+		const body: UpdateTabBody = { name };
+		await apiFetch<Tab>(`/api/projects/${projectId}/tabs/${renamedId}`, {
+			method: "PATCH",
+			body: JSON.stringify(body),
+		});
+		tabs.refetch();
+	}
+
+	/* Removing archives the tab; its notes show in Main from then on. */
+	async function removeTab(removedId: string) {
+		setTabFailed(null);
+		try {
+			await apiFetch<Tab>(`/api/projects/${projectId}/tabs/${removedId}`, {
+				method: "DELETE",
+			});
+		} catch {
+			setTabFailed("Could not remove the tab.");
+			return;
+		}
+		tabs.refetch();
+		/* The removed tab was the open one: back to Main, and the new address is
+		   what refetches the list. Otherwise Main may have gained its notes. */
+		if (removedId === tabId) setSearchParams({}, { replace: true });
+		else notes.refetch();
+	}
 
 	return (
 		<>
@@ -88,14 +183,29 @@ export function Project() {
 			/>
 
 			<main className="mx-auto max-w-[752px] px-4 pt-14 pb-6">
+				<TabStrip
+					projectId={project.id}
+					tabs={tabs.data ?? []}
+					activeId={tabId}
+					onAdd={() => void addTab()}
+					onRename={renameTab}
+					onRemove={(removedId) => void removeTab(removedId)}
+				/>
+
 				<div className="mb-6">
-					<Composer ref={composer} projectId={project.id} onClosed={notes.refetch} />
+					<Composer
+						ref={composer}
+						projectId={project.id}
+						tabId={tabId}
+						onClosed={notes.refetch}
+					/>
 				</div>
 
 				{sectioned && (
 					<Section
 						label="Pinned"
 						projectId={project.id}
+						tabId={tabId}
 						notes={pinned}
 						onChanged={notes.refetch}
 						onOrderFailed={setOrderFailed}
@@ -104,13 +214,18 @@ export function Project() {
 				<Section
 					label={sectioned ? "Others" : null}
 					projectId={project.id}
+					tabId={tabId}
 					notes={others}
 					onChanged={notes.refetch}
 					onOrderFailed={setOrderFailed}
 				/>
 
-				{!notes.loading && notes.data?.length === 0 && (
-					<p className="text-faint">Nothing in this project yet. Start typing above.</p>
+				{!notes.loading && shown?.length === 0 && (
+					<p className="text-faint">
+						{tabId === null
+							? "Nothing in this project yet. Start typing above."
+							: "Nothing in this tab yet. Start typing above."}
+					</p>
 				)}
 			</main>
 
@@ -118,9 +233,13 @@ export function Project() {
 				message={
 					notes.error !== null
 						? `Could not load the notes. ${notes.error}`
-						: orderFailed
-							? "Could not save the new order."
-							: null
+						: tabs.error !== null
+							? `Could not load the tabs. ${tabs.error}`
+							: tabFailed !== null
+								? tabFailed
+								: orderFailed
+									? "Could not save the new order."
+									: null
 				}
 			/>
 		</>
@@ -130,12 +249,15 @@ export function Project() {
 function Section({
 	label,
 	projectId,
+	tabId,
 	notes,
 	onChanged,
 	onOrderFailed,
 }: {
 	label: string | null;
 	projectId: string;
+	/** The tab this list is, or null for Main; the saved order answers with it. */
+	tabId: string | null;
 	notes: NotePreview[];
 	onChanged: () => void;
 	onOrderFailed: (failed: boolean) => void;
@@ -194,7 +316,8 @@ function Section({
 		onOrderFailed(false);
 		try {
 			const body: ReorderNotesBody = { ids };
-			await apiFetch<NotePreview[]>(`/api/projects/${projectId}/notes/order`, {
+			const scope = tabId === null ? "" : `?tab=${tabId}`;
+			await apiFetch<NotePreview[]>(`/api/projects/${projectId}/notes/order${scope}`, {
 				method: "PUT",
 				body: JSON.stringify(body),
 			});

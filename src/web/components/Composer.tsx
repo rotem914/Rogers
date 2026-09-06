@@ -25,10 +25,13 @@ export type ComposerHandle = { open: () => void };
 export function Composer({
 	ref,
 	projectId,
+	tabId,
 	onClosed,
 }: {
 	ref?: Ref<ComposerHandle>;
 	projectId: string;
+	/** The tab the list on screen is, so a new note lands in it. Null is Main. */
+	tabId: string | null;
 	/** Called after a close that may have changed the list. */
 	onClosed: () => void;
 }) {
@@ -72,6 +75,7 @@ export function Composer({
 				id: idRef.current,
 				title: latest.current.title,
 				body: latest.current.body,
+				...(tabId !== null ? { tabId } : {}),
 			};
 			await apiFetch<Note>(`/api/projects/${projectId}/notes`, {
 				method: "POST",
@@ -99,7 +103,7 @@ export function Composer({
 			creatingRef.current = null;
 		}
 		return saverRef.current;
-	}, [projectId]);
+	}, [projectId, tabId]);
 
 	/* `record` is off when the patch comes from the undo stack itself. */
 	function change(
@@ -257,11 +261,11 @@ export function Composer({
 
 	if (!open) {
 		return (
-			<div className="flex items-center rounded-[10px] border border-border bg-surface shadow-raised">
+			<div className="flex items-center rounded-[10px] bg-card shadow-raised">
 				<button
 					type="button"
 					onClick={() => setOpen(true)}
-					className="min-w-0 flex-1 rounded-[10px] px-4 py-3 text-left text-lg text-muted transition-colors duration-[144ms] ease-out hover:bg-surface-hover"
+					className="min-w-0 flex-1 rounded-[10px] px-4 py-3 text-left text-lg text-muted transition-colors duration-[144ms] ease-out hover:bg-card-hover"
 				>
 					Take a note…
 				</button>

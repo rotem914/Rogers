@@ -28,19 +28,59 @@ export const projectNotes = new Hono<{ Bindings: Env }>();
  * below have been arranged. The trailing pair is the original order and is what
  * a database nobody has dragged still answers with, unchanged.
  *
+ * The list is one tab's. Main, the project's own list, is every note that is
+ * in no live tab: the ones never put in one, and the ones whose tab was
+ * removed, which is what keeps a removed tab's notes reachable without
+ * rewriting a single row.
+ *
  * The body is clipped in SQL as well as in the mapper. The mapper is the
  * guarantee; the SQL is so a project full of long notes does not haul every
  * word out of the database to throw it away. Clipping twice is harmless. */
-const LIST_SQL = `
-	SELECT id, project_id, title,
+const MAIN_SCOPE = `(tab_id IS NULL OR tab_id NOT IN (SELECT id FROM tabs WHERE archived_at IS NULL))`;
+const TAB_SCOPE = `tab_id = ?`;
+
+function listSql(scope: string): string {
+	return `
+	SELECT id, project_id, tab_id, title,
 	       substr(body, 1, ${PREVIEW_LENGTH}) AS body,
 	       images, pinned_at, position, created_at, updated_at, archived_at
 	  FROM notes
-	 WHERE project_id = ? AND archived_at IS NULL
+	 WHERE project_id = ? AND archived_at IS NULL AND ${scope}
 	 ORDER BY (pinned_at IS NULL),
 	          position IS NOT NULL, position ASC,
 	          pinned_at DESC, created_at DESC
-`;
+	`;
+}
+
+/** One tab's list, or Main's when tabId is null. */
+async function listNotes(
+	db: D1Database,
+	projectId: string,
+	tabId: string | null,
+): Promise<NotePreview[]> {
+	const statement =
+		tabId === null
+			? db.prepare(listSql(MAIN_SCOPE)).bind(projectId)
+			: db.prepare(listSql(TAB_SCOPE)).bind(projectId, tabId);
+	const { results } = await statement.all<NoteRow>();
+	return results.map(toNotePreview);
+}
+
+/**
+ * Which tab the address asks for: `?tab=` names one, none means Main.
+ *
+ * Null means the tab is not this project's, or is gone, which the route turns
+ * into a 404 rather than quietly answering Main for a tab that was removed.
+ */
+async function readTabQuery(
+	db: D1Database,
+	projectId: string,
+	raw: string | undefined,
+): Promise<{ tabId: string | null } | null> {
+	if (raw === undefined || raw === "") return { tabId: null };
+	if (!isUsableId(raw) || !(await tabIsLive(db, raw, projectId))) return null;
+	return { tabId: raw };
+}
 
 projectNotes.get("/", async (c) => {
 	/* The id comes from the address this router is mounted under. TypeScript
@@ -51,10 +91,12 @@ projectNotes.get("/", async (c) => {
 		return c.json<ApiErrorBody>({ error: "No such project." }, 404);
 	}
 
-	const { results } = await c.env.DB.prepare(LIST_SQL)
-		.bind(projectId)
-		.all<NoteRow>();
-	return c.json<NotePreview[]>(results.map(toNotePreview));
+	const scope = await readTabQuery(c.env.DB, projectId, c.req.query("tab"));
+	if (scope === null) {
+		return c.json<ApiErrorBody>({ error: "No such tab." }, 404);
+	}
+
+	return c.json<NotePreview[]>(await listNotes(c.env.DB, projectId, scope.tabId));
 });
 
 /* The order one section of the list is in.
@@ -70,6 +112,14 @@ projectNotes.put("/order", async (c) => {
 	const projectId = c.req.param("projectId");
 	if (projectId === undefined || !(await projectIsLive(c.env.DB, projectId))) {
 		return c.json<ApiErrorBody>({ error: "No such project." }, 404);
+	}
+
+	/* The answer is the list the order came from, so `?tab=` rides along here
+	   too. Positions only mean something next to their neighbours in one list,
+	   and the ids sent are that list's, so the write itself needs no scope. */
+	const scope = await readTabQuery(c.env.DB, projectId, c.req.query("tab"));
+	if (scope === null) {
+		return c.json<ApiErrorBody>({ error: "No such tab." }, 404);
 	}
 
 	const body = await readJson<ReorderNotesBody>(c.req.raw);
@@ -100,10 +150,7 @@ projectNotes.put("/order", async (c) => {
 		);
 	}
 
-	const { results } = await c.env.DB.prepare(LIST_SQL)
-		.bind(projectId)
-		.all<NoteRow>();
-	return c.json<NotePreview[]>(results.map(toNotePreview));
+	return c.json<NotePreview[]>(await listNotes(c.env.DB, projectId, scope.tabId));
 });
 
 projectNotes.post("/", async (c) => {
@@ -121,6 +168,20 @@ projectNotes.post("/", async (c) => {
 	   note. */
 	const title = typeof body?.title === "string" ? body.title : "";
 	const text = typeof body?.body === "string" ? body.body : "";
+
+	/* The tab it goes in. Left out, the note is in Main. A tab that is not this
+	   project's, or was removed, is refused rather than silently landing in Main,
+	   because the composer that sent it is showing that tab's list. */
+	let tabId: string | null = null;
+	if (body !== null && "tabId" in body && body.tabId !== undefined) {
+		if (
+			!isUsableId(body.tabId) ||
+			!(await tabIsLive(c.env.DB, body.tabId, projectId))
+		) {
+			return c.json(errorBody("No such tab."), 400);
+		}
+		tabId = body.tabId;
+	}
 
 	/* A browser-made id is untrusted input that ends up in an address, so it is
 	   checked rather than trusted. */
@@ -140,11 +201,11 @@ projectNotes.post("/", async (c) => {
 	   an error when the composer retries it. */
 	const inserted = await c.env.DB.prepare(
 		`INSERT INTO notes
-		   (id, project_id, title, body, images, pinned_at, created_at, updated_at, archived_at)
-		 VALUES (?, ?, ?, ?, '[]', NULL, ?, ?, NULL)
+		   (id, project_id, tab_id, title, body, images, pinned_at, created_at, updated_at, archived_at)
+		 VALUES (?, ?, ?, ?, ?, '[]', NULL, ?, ?, NULL)
 		 ON CONFLICT (id) DO NOTHING`,
 	)
-		.bind(id, projectId, title, text, now, now)
+		.bind(id, projectId, tabId, title, text, now, now)
 		.run();
 
 	if (inserted.meta.changes === 0) {
@@ -162,6 +223,7 @@ projectNotes.post("/", async (c) => {
 		{
 			id,
 			projectId,
+			tabId,
 			title,
 			body: text,
 			images: [],
@@ -180,10 +242,26 @@ projectNotes.post("/", async (c) => {
  * the database, but nothing can reach them until the project comes back, so the
  * honest answer to a request for them is that there is no such project.
  */
-async function projectIsLive(db: D1Database, id: string): Promise<boolean> {
+export async function projectIsLive(db: D1Database, id: string): Promise<boolean> {
 	const row = await db
 		.prepare(`SELECT 1 AS ok FROM projects WHERE id = ? AND archived_at IS NULL`)
 		.bind(id)
+		.first<{ ok: number }>();
+	return row !== null;
+}
+
+/** Is this tab live, and is it this project's? Removed counts as absent. */
+async function tabIsLive(
+	db: D1Database,
+	id: string,
+	projectId: string,
+): Promise<boolean> {
+	const row = await db
+		.prepare(
+			`SELECT 1 AS ok FROM tabs
+			  WHERE id = ? AND project_id = ? AND archived_at IS NULL`,
+		)
+		.bind(id, projectId)
 		.first<{ ok: number }>();
 	return row !== null;
 }
