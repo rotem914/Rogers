@@ -48,7 +48,7 @@ Rogers/
 │   ├── api/               # the Worker: projects, tabs, notes, images (upload and serve), rows, http
 │   ├── web/               # the SPA
 │   │   ├── pages/         # one file per address: Home, Project, Note
-│   │   ├── components/    # TopBar, ProjectTile, TabStrip, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
+│   │   ├── components/    # TopBar, Logo, ProjectTile, TabStrip, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
 │   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
 │   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in; reorder.ts, the shared drag helpers
 │   │   └── styles/        # tokens.css, the whole palette; fonts/, the Google Sans files and their licence

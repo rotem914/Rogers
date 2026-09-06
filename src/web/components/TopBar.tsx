@@ -66,7 +66,7 @@ export function TopBar({ backTo, onBack, title, trailing, center }: TopBarProps)
 
 	if (center === undefined) {
 		return (
-			<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-8">
+			<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-14">
 				<div className="mx-auto flex w-full max-w-[1324px] items-center gap-3 px-[72px] max-[900px]:px-[18px]">
 					{back}
 					{heading}
@@ -95,7 +95,7 @@ export function TopBar({ backTo, onBack, title, trailing, center }: TopBarProps)
 	   Below 900px the columns stack, and the 18px bar padding is pulled back by
 	   2px so the strip still starts on the cards' own 16px edge. */
 	return (
-		<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-8">
+		<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-14">
 			<div className="mx-auto grid w-full max-w-[1324px] grid-cols-[1fr_minmax(0,752px)_1fr] items-center max-[900px]:grid-cols-1 max-[900px]:gap-y-2 max-[900px]:px-[18px]">
 				<div className="flex min-w-0 items-center pl-[72px] max-[900px]:gap-3 max-[900px]:pl-0">
 					{backTo !== undefined && (

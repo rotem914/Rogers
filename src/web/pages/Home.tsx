@@ -14,6 +14,7 @@ import { apiFetch } from "../platform/api-client";
 import { useApi } from "../lib/useApi";
 import { arrange, moved } from "../lib/reorder";
 import { TopBar } from "../components/TopBar";
+import { Logo } from "../components/Logo";
 import { ProjectTile } from "../components/ProjectTile";
 import { Toast } from "../components/Feedback";
 
@@ -98,7 +99,15 @@ export function Home() {
 
 	return (
 		<>
-			<TopBar title="Rogers" />
+			<TopBar
+				title={
+					/* The 48px slot is the line box the word "Rogers" used to fill, kept
+					   so swapping the type for the mark does not shorten the bar. */
+					<span className="flex h-12 items-center">
+						<Logo className="block h-[34px] w-auto" />
+					</span>
+				}
+			/>
 
 			<main className="mx-auto max-w-[1324px] px-[72px] pt-14 pb-8 max-[900px]:px-[18px]">
 				<div
