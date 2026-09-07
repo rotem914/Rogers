@@ -111,8 +111,9 @@ function TabChip({
 	const [draft, setDraft] = useState(name);
 	const [failed, setFailed] = useState(false);
 
-	/* The chip owns the padding, so the name inside carries none of its own. */
-	const nameClass = "bidi min-w-0 truncate text-[18px] font-medium";
+	/* The padding sits on the name and not on the chip, so the click target
+	   fills the whole chip instead of just the letters. */
+	const nameClass = "bidi min-w-0 truncate px-4 py-[6px] text-[18px] font-medium";
 
 	/* Removing lives on the right-click menu, so the strip carries no button
 	   for it and stays quiet. Main has no menu, and right-clicking it gives the
@@ -175,7 +176,7 @@ function TabChip({
 				event.preventDefault();
 				setMenuOpen(true);
 			}}
-			className={`relative flex items-center rounded-card px-4 py-[6px] transition-colors duration-[144ms] ease-out ${
+			className={`relative flex items-center rounded-card transition-colors duration-[144ms] ease-out ${
 				active ? "bg-card text-text" : "text-muted hover:bg-surface-hover hover:text-text"
 			}`}
 		>
@@ -195,7 +196,7 @@ function TabChip({
 							setEditing(false);
 						}
 					}}
-					className={`bidi min-w-0 bg-transparent text-[18px] font-medium outline-none ${
+					className={`bidi min-w-0 bg-transparent px-4 py-[6px] text-[18px] font-medium outline-none ${
 						failed ? "text-danger" : "text-text"
 					}`}
 				/>
