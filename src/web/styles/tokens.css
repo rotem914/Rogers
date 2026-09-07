@@ -31,6 +31,9 @@
 	--color-accent-ink: #17181a; /* text on an accent fill */
 	--color-danger: #f28b82; /* destructive actions and error text */
 
+	/* The logo blue. The mark's disc in components/Logo.tsx, nowhere else. */
+	--color-brand: #2d41d7;
+
 	/* Shape. */
 	--radius-card: 13px;
 	--radius-pill: 999px;
