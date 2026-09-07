@@ -50,20 +50,20 @@ export function Logo({ className = "" }: { className?: string }) {
 				<circle
 					cx="16"
 					cy="16"
-					r="14.5"
+					r="14.84"
 					fill="var(--color-brand)"
 					stroke="currentColor"
-					strokeWidth="3"
+					strokeWidth="2.32"
 				/>
 				<path
 					d="M16.832 25.7519C16.4362 26.3457 15.5638 26.3457 15.1679 25.7519L5.03647 10.5547C4.59343 9.89015 5.06982 9 5.86852 9L26.1315 9C26.9302 9 27.4066 9.89015 26.9635 10.5547L16.832 25.7519Z"
 					stroke="currentColor"
-					strokeWidth="3"
+					strokeWidth="3.2"
 				/>
 				<path
 					d="M11.5496 19.9569L19.3986 8.57817"
 					stroke="currentColor"
-					strokeWidth="3"
+					strokeWidth="3.2"
 				/>
 			</g>
 			<defs>
