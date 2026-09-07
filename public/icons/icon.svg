@@ -1,7 +1,7 @@
 <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_6_42)">
-<circle cx="16" cy="16" r="15" fill="#2D41D7" stroke="#E6E7E9" stroke-width="2"/>
-<path d="M16.8384 26.7101C16.4441 27.3168 15.5559 27.3168 15.1616 26.7101L4.00424 9.54499C3.57183 8.87974 4.04925 8 4.84269 8L27.1573 8C27.9508 8 28.4282 8.87974 27.9958 9.54499L16.8384 26.7101Z" stroke="#E6E7E9" stroke-width="3"/>
+<circle cx="16" cy="16" r="14.5" fill="#2D41D7" stroke="#E6E7E9" stroke-width="3"/>
+<path d="M16.832 25.7519C16.4362 26.3457 15.5638 26.3457 15.1679 25.7519L5.03647 10.5547C4.59343 9.89015 5.06982 9 5.86852 9L26.1315 9C26.9302 9 27.4066 9.89015 26.9635 10.5547L16.832 25.7519Z" stroke="#E6E7E9" stroke-width="3"/>
 <path d="M11.5496 19.9569L19.3986 8.57817" stroke="#E6E7E9" stroke-width="3"/>
 </g>
 <defs>

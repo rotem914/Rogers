@@ -6,7 +6,11 @@
  * Two colours only. The wordmark, the ring and the triangle are `currentColor`,
  * so they inherit the surface they sit on, which is the bar's own text colour.
  * The disc behind them is the brand blue, read from `--color-brand` in
- * `styles/tokens.css`, because a raw hex never appears in a component. */
+ * `styles/tokens.css`, because a raw hex never appears in a component.
+ *
+ * The clip is the designer's, kept as it was: it holds the mark to its 32px
+ * square, which is what keeps the ring's stroke flush with the edge. Its id is
+ * namespaced, since an id has to be unique in the whole page. */
 
 export function Logo({ className = "" }: { className?: string }) {
 	return (
@@ -42,24 +46,31 @@ export function Logo({ className = "" }: { className?: string }) {
 				d="M145.912 27.448C141.72 27.448 138.968 25.112 138.872 21.528H142.328C142.424 23.352 143.96 24.312 146.04 24.312C147.96 24.312 149.432 23.512 149.432 22.072C149.432 20.408 147.576 20.056 145.464 19.704C142.584 19.192 139.192 18.552 139.192 14.552C139.192 11.448 141.848 9.304 145.88 9.304C149.88 9.304 152.504 11.512 152.568 14.84H149.208C149.144 13.208 147.864 12.312 145.784 12.312C143.832 12.312 142.616 13.176 142.616 14.424C142.616 15.96 144.376 16.248 146.456 16.6C149.368 17.08 152.92 17.656 152.92 21.912C152.92 25.272 150.136 27.448 145.912 27.448Z"
 				fill="currentColor"
 			/>
-			<circle
-				cx="16"
-				cy="16"
-				r="15"
-				fill="var(--color-brand)"
-				stroke="currentColor"
-				strokeWidth="2"
-			/>
-			<path
-				d="M16.8384 26.7101C16.4441 27.3168 15.5559 27.3168 15.1616 26.7101L4.00424 9.54499C3.57183 8.87974 4.04925 8 4.84269 8L27.1573 8C27.9508 8 28.4282 8.87974 27.9958 9.54499L16.8384 26.7101Z"
-				stroke="currentColor"
-				strokeWidth="3"
-			/>
-			<path
-				d="M11.5496 19.9569L19.3986 8.57817"
-				stroke="currentColor"
-				strokeWidth="3"
-			/>
+			<g clipPath="url(#rogers-logo-clip)">
+				<circle
+					cx="16"
+					cy="16"
+					r="14.5"
+					fill="var(--color-brand)"
+					stroke="currentColor"
+					strokeWidth="3"
+				/>
+				<path
+					d="M16.832 25.7519C16.4362 26.3457 15.5638 26.3457 15.1679 25.7519L5.03647 10.5547C4.59343 9.89015 5.06982 9 5.86852 9L26.1315 9C26.9302 9 27.4066 9.89015 26.9635 10.5547L16.832 25.7519Z"
+					stroke="currentColor"
+					strokeWidth="3"
+				/>
+				<path
+					d="M11.5496 19.9569L19.3986 8.57817"
+					stroke="currentColor"
+					strokeWidth="3"
+				/>
+			</g>
+			<defs>
+				<clipPath id="rogers-logo-clip">
+					<rect width="32" height="32" fill="white" />
+				</clipPath>
+			</defs>
 		</svg>
 	);
 }
