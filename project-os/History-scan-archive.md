@@ -49,3 +49,5 @@ Moved here verbatim by project-os/rotate-history.ps1. Movement only: rows are ne
 | 2026-09-04 | done | **Rotem confirmed both drags work on the live app.** The live check the deploy row was waiting on. |
 | 2026-09-04 | app | **The composer opens with the caret in the title.** Rotem's own edit; it used to open in the body the way Keep does. |
 | 2026-09-04 | app | **Correction: that title focus was my change, and it was checked.** The row above credits Rotem and records it as unchecked. It was made in this session, on his request, and driven in the browser. |
+| 2026-09-04 | app | **The composer's leftover body-focus handle is gone.** Dead since the caret moved to the title. Nothing a person can see changed. |
+| 2026-09-05 | app | **No more placeholder rows while a project or a note opens.** The load is instant, so the grey shapes only flickered. Home still has its own. |

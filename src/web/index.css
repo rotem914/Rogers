@@ -54,6 +54,14 @@ body {
 	color: var(--color-text);
 }
 
+/* The scrollbar's room is always reserved, on every screen, whether or not that
+   screen scrolls. Without it a short page is 15px wider than a long one, and
+   everything centred, the bar's back arrow included, jumps sideways by half of
+   that on the way from a project into one of its notes. */
+html {
+	scrollbar-gutter: stable;
+}
+
 body {
 	margin: 0;
 	/* Google Sans, loaded from Google Fonts in index.html. The rest of the stack

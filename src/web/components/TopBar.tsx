@@ -64,11 +64,29 @@ export function TopBar({ backTo, onBack, title, trailing, center }: TopBarProps)
 		</span>
 	);
 
+	/* The arrow hangs in the left gutter, the same way it does on the bar that
+	   has a middle column, so it does not move when you step from a project
+	   into one of its notes: a flex item of no width at the title's own 72px,
+	   with the arrow pinned to its right edge. The negative margin cancels the
+	   row's gap, so the title still starts exactly where Home's does, and a bar
+	   that HAS an arrow is held at that other bar's 63px so the arrow sits at
+	   its height too. Home has no arrow and keeps its own height.
+	   Below 900px there is no gutter to hang in, so it rejoins the row. */
 	if (center === undefined) {
 		return (
 			<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-14">
-				<div className="mx-auto flex w-full max-w-[1324px] items-center gap-3 px-[72px] max-[900px]:px-[18px]">
-					{back}
+				<div
+					className={`mx-auto flex w-full max-w-[1324px] items-center gap-3 px-[72px] max-[900px]:px-[18px] ${
+						backTo === undefined ? "" : "h-[63px] max-[900px]:h-auto"
+					}`}
+				>
+					{backTo !== undefined && (
+						<div className="relative -mr-3 w-0 shrink-0 max-[900px]:mr-0 max-[900px]:w-auto">
+							<div className="absolute top-1/2 right-3 -translate-y-1/2 max-[900px]:static max-[900px]:translate-y-0">
+								{back}
+							</div>
+						</div>
+					)}
 					{heading}
 					{trailing}
 				</div>
