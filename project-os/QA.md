@@ -317,6 +317,70 @@ or to what that menu does, checks all of it:
    second row leaves only one menu open anywhere in the list.
 6. A left click still opens the note page.
 7. Reordering still works, driven the way section 10c prescribes.
+8. Click a picture in a row: the modal opens with 56px of air around it and
+   the address bar does not move, so the note was NOT opened. Click the row
+   beside the picture: the note opens as it always did. Right-click the
+   picture: the row's own Pin and Archive menu opens, not the modal.
+9. Close the modal three ways: Escape, a click on the dark background, and a
+   click on the picture itself. The third one is the one that breaks: a
+   picture drags itself by default, so without `draggable={false}` a press
+   that moves a hair starts a drag and no click ever fires.
+
+## 10h. A project tile's own menu
+
+Renaming, colouring and archiving a project on Home live on the tile's
+right-click, and the tile carries no button of its own. The whole flow runs
+on a throwaway project you make from the plus tile and archive at the end,
+never on one of Rotem's:
+
+1. Hover a tile: no three dots, nothing but the tile lighting up.
+2. Right-click a tile: Rename, Colour and Archive open at the cursor.
+   Right-click near the tile's right edge: the menu stays inside the tile,
+   and so does the wider swatch row, all seven swatches with it.
+3. Rename saves on Enter and the new name survives a reload. Escape discards
+   it and the old name comes back.
+4. Right-click INSIDE the open rename field: our menu must not appear, so the
+   browser's own stays available and a name can still be pasted.
+5. Colour: a swatch saves, and the picker closes on its own.
+6. Archive: the tile leaves Home.
+7. Escape closes the menu, a click outside closes it, and a right-click on a
+   second tile leaves only one menu open on the page.
+8. A left click still opens the project, and dragging a tile into a new place
+   still saves, driven the way section 10c prescribes.
+9. At 375 wide the same two popups still sit inside the tile.
+
+## 10i. A tab's checklist and a row's mark
+
+"Add checklist" on a tab's right-click gives every row in that tab a checkbox.
+The same item takes it away again, and its words say which way it will go.
+The mark is the whole feature: it hides nothing, moves nothing and orders
+nothing. The flow runs on a throwaway project you make and archive at the end,
+never on one of Rotem's:
+
+1. Right-click a tab with no checklist: the item reads Add checklist, above
+   Remove. Right-click Main: no menu at all, so Main can never get one.
+2. Add checklist: every row in that tab draws a box, and no row in Main or in
+   another tab does.
+3. Measure the box from the DOM: 24 x 24, fully round, a 2px ring, and 16px
+   between it and the text. The check mark's stroke is measured in RENDERED
+   pixels, not in the SVG's own units, and it has to come out at 2.
+4. Click a box: the mark appears at once, without opening the note.
+5. RELOAD and look again. This is the check that catches the real bug: the
+   project remembers its lists in the browser's own storage, so a row seeded
+   once from that remembered copy keeps showing the old mark for as long as it
+   stays mounted. A mark that is on the server and off the screen is blocking.
+6. Click it again: the mark goes, and that survives a reload too.
+7. Right-click the tab again: the item now reads Remove checklist, on one line
+   inside the menu, and it still reads that after a reload. Click it: every box
+   goes, every row stays, and the marks are still on the server. Put the
+   checklist back and every mark is where it was.
+8. The row's own right-click still opens Pin and Archive, a click on the text
+   still opens the note, and pinning a marked row carries the mark into the
+   PINNED section.
+9. Dragging rows into a new order, driven the way section 10c prescribes, keeps
+   every mark where it was.
+10. At 375 wide the box holds its width and a long title wraps beside it, never
+   under it, with no horizontal overflow.
 
 ## 11. Prove a tool is missing before you claim it is
 

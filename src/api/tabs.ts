@@ -89,7 +89,11 @@ projectTabs.post("/", async (c) => {
 		return c.json<Tab>(toTab(existing));
 	}
 
-	return c.json<Tab>({ id, projectId, name, createdAt: now, updatedAt: now }, 201);
+	/* A new tab has no checklist until the menu adds one. */
+	return c.json<Tab>(
+		{ id, projectId, name, checklist: false, createdAt: now, updatedAt: now },
+		201,
+	);
 });
 
 /* The order the strip shows, written in one go.
@@ -193,6 +197,16 @@ projectTabs.patch("/:id", async (c) => {
 			/* The notes were never rewritten, so they come back with it. */
 			assignments.push("archived_at = NULL");
 		}
+	}
+
+	if (body !== null && "checklist" in body) {
+		if (typeof body.checklist !== "boolean") {
+			return c.json<ApiErrorBody>({ error: "Checklist must be true or false." }, 400);
+		}
+		/* The switch only. The marks live on the notes and are never touched from
+		   here, so turning it off and on again finds every one where it was. */
+		assignments.push("checklist = ?");
+		values.push(body.checklist ? 1 : 0);
 	}
 
 	/* A request that names nothing changes nothing, and answers with the tab as

@@ -27,6 +27,8 @@ export type TabRow = {
 	id: string;
 	project_id: string;
 	name: string;
+	/** 1 once the tab was given a checklist. Null is a tab from before it existed. */
+	checklist: number | null;
 	created_at: string;
 	updated_at: string;
 	archived_at: string | null;
@@ -42,6 +44,8 @@ export type NoteRow = {
 	/** A JSON array of R2 keys. Always a string here, never an array. */
 	images: string;
 	pinned_at: string | null;
+	/** 1 once the row's checkbox was marked. Null is a note from before it existed. */
+	checked: number | null;
 	/** Where the row sits in its section of the list. Null means never dragged. */
 	position: number | null;
 	created_at: string;
@@ -66,6 +70,7 @@ export function toTab(row: TabRow): Tab {
 		id: row.id,
 		projectId: row.project_id,
 		name: row.name,
+		checklist: row.checklist === 1,
 		createdAt: row.created_at,
 		updatedAt: row.updated_at,
 	};
@@ -100,6 +105,7 @@ export function toNotePreview(row: NoteRow): NotePreview {
 		preview: row.body.slice(0, PREVIEW_LENGTH),
 		images: parseImages(row.images),
 		pinnedAt: row.pinned_at,
+		checked: row.checked === 1,
 	};
 }
 

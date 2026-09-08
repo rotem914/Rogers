@@ -2,8 +2,8 @@
  *
  * The tile is a div rather than a link with a button inside it, because a
  * control nested in a link is neither reliably clickable nor announced
- * correctly. The link is an overlay that covers the tile, and the menu button
- * sits above it. */
+ * correctly. The link is an overlay that covers the tile, and the menu opens
+ * above it, on the right-click. */
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
@@ -24,6 +24,10 @@ const COLORS: { label: string; value: string | null }[] = [
 
 type Mode = "view" | "menu" | "renaming" | "colouring";
 
+/** The popups' own widths, `w-36` and the seven swatches, so each stays in the tile. */
+const MENU_WIDTH = 144;
+const COLOUR_WIDTH = 208;
+
 export function ProjectTile({
 	project,
 	onChanged,
@@ -34,21 +38,36 @@ export function ProjectTile({
 	const [mode, setMode] = useState<Mode>("view");
 	const [name, setName] = useState(project.name);
 	const [failed, setFailed] = useState(false);
-	const menuButton = useRef<HTMLButtonElement>(null);
+	const root = useRef<HTMLDivElement>(null);
 
-	/* Escape closes whatever is open and puts focus back where it came from, so
-	   the keyboard never ends up stranded on a tile with no menu. */
+	/* Where the right-click landed, measured from the tile's own corner, plus how
+	   wide the tile is so a popup can be kept inside it. Same shape as a note row
+	   in the list. */
+	const [point, setPoint] = useState<{ x: number; y: number; width: number } | null>(null);
+
+	/* Escape closes whatever is open. A click outside closes the popups too, and
+	   only them: there is no button left to toggle the menu shut, and renaming
+	   keeps its old ways, so a click elsewhere never discards a half-typed name. */
 	useEffect(() => {
 		if (mode === "view") return;
 		function onKey(event: KeyboardEvent) {
 			if (event.key === "Escape") {
 				setMode("view");
 				setName(project.name);
-				menuButton.current?.focus();
+			}
+		}
+		function onPointerDown(event: PointerEvent) {
+			if (mode === "renaming") return;
+			if (root.current !== null && !root.current.contains(event.target as Node)) {
+				setMode("view");
 			}
 		}
 		document.addEventListener("keydown", onKey);
-		return () => document.removeEventListener("keydown", onKey);
+		document.addEventListener("pointerdown", onPointerDown);
+		return () => {
+			document.removeEventListener("keydown", onKey);
+			document.removeEventListener("pointerdown", onPointerDown);
+		};
 	}, [mode, project.name]);
 
 	async function save(patch: UpdateProjectBody) {
@@ -80,6 +99,15 @@ export function ProjectTile({
 
 	const border = project.color !== null ? { borderColor: project.color } : undefined;
 
+	/** A popup of this width, at the click, never hanging off the tile's edge. */
+	function at(width: number) {
+		if (point === null) return undefined;
+		return {
+			left: Math.max(0, Math.min(point.x, point.width - width)),
+			top: point.y,
+		};
+	}
+
 	/* Hovering or focusing the tile asks for the project's tabs and Main's notes
 	   ahead of the click, so the project page opens with its list already there. */
 	function warm() {
@@ -89,6 +117,20 @@ export function ProjectTile({
 
 	return (
 		<div
+			ref={root}
+			onContextMenu={(event) => {
+				/* Not while renaming: that field keeps the browser's own menu, so
+				   pasting a name still works. */
+				if (mode === "renaming") return;
+				event.preventDefault();
+				const box = event.currentTarget.getBoundingClientRect();
+				setPoint({
+					x: event.clientX - box.left,
+					y: event.clientY - box.top,
+					width: box.width,
+				});
+				setMode("menu");
+			}}
 			className="group relative flex aspect-4/3 flex-col justify-between rounded-card bg-card p-6 transition-colors duration-[144ms] ease-out hover:bg-card-hover max-[430px]:aspect-auto max-[430px]:h-[144px]"
 			style={border}
 		>
@@ -108,10 +150,9 @@ export function ProjectTile({
 				/>
 			) : (
 				<>
-					{/* The overlay link. It sits under the menu button, which is why the
-					    button can still be clicked. It is not draggable, because a link
-					    drags its own address by default, and this one covers the tile,
-					    so it would win over dragging the tile itself on Home. */}
+					{/* The overlay link. It is not draggable, because a link drags its
+					    own address by default, and this one covers the tile, so it would
+					    win over dragging the tile itself on Home. */}
 					<Link
 						to={`/p/${project.id}`}
 						aria-label={project.name}
@@ -120,7 +161,7 @@ export function ProjectTile({
 						onFocus={warm}
 						className="absolute inset-0 rounded-card"
 					/>
-					<span className="bidi pointer-events-none line-clamp-3 pr-8 text-[24px] font-medium">
+					<span className="bidi pointer-events-none line-clamp-3 text-[24px] font-medium">
 						{project.name}
 					</span>
 				</>
@@ -130,24 +171,16 @@ export function ProjectTile({
 				<span className="text-sm text-muted">{failed ? "Could not save." : ""}</span>
 			</div>
 
-			{/* Chrome, so it stays top right whatever direction the name runs in. */}
-			<button
-				ref={menuButton}
-				type="button"
-				aria-label={`Actions for ${project.name}`}
-				aria-expanded={mode === "menu"}
-				onClick={() => setMode(mode === "menu" ? "view" : "menu")}
-				className="absolute top-2 right-2 z-10 rounded-card px-2 py-1 text-muted opacity-0 hover:bg-surface-hover hover:text-text focus-visible:opacity-100 group-hover:opacity-100"
-			>
-				⋯
-			</button>
-
 			{mode === "menu" && (
 				<div
 					role="menu"
-					className="absolute top-9 right-2 z-20 w-36 overflow-hidden rounded-card border border-border bg-surface shadow-raised"
+					aria-label={`Actions for ${project.name}`}
+					style={at(MENU_WIDTH)}
+					className="absolute z-20 w-36 overflow-hidden rounded-card border border-border bg-surface shadow-raised"
 				>
-					<MenuItem onClick={() => setMode("renaming")}>Rename</MenuItem>
+					<MenuItem first onClick={() => setMode("renaming")}>
+						Rename
+					</MenuItem>
 					<MenuItem onClick={() => setMode("colouring")}>Colour</MenuItem>
 					<MenuItem onClick={() => void archive()}>Archive</MenuItem>
 				</div>
@@ -157,7 +190,8 @@ export function ProjectTile({
 				<div
 					role="menu"
 					aria-label="Project colour"
-					className="absolute top-9 right-2 z-20 flex gap-2 rounded-card border border-border bg-surface p-2 shadow-raised"
+					style={at(COLOUR_WIDTH)}
+					className="absolute z-20 flex gap-2 rounded-card border border-border bg-surface p-2 shadow-raised"
 				>
 					{COLORS.map((colour) => (
 						<button
@@ -185,14 +219,18 @@ export function ProjectTile({
 function MenuItem({
 	onClick,
 	children,
+	first = false,
 }: {
 	onClick: () => void;
 	children: string;
+	/** The one that takes focus when the menu opens. */
+	first?: boolean;
 }) {
 	return (
 		<button
 			type="button"
 			role="menuitem"
+			autoFocus={first}
 			onClick={onClick}
 			className="block w-full px-3 py-2 text-left text-sm text-text hover:bg-surface-hover"
 		>

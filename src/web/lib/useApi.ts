@@ -37,7 +37,7 @@ export type ApiOptions = {
    knowing the cost: the titles and previews stay on the machine until Rogers
    overwrites them, logged out or not. Bump the version whenever a list's shape
    changes, so an old copy is never handed to a screen expecting the new one. */
-const STORAGE_KEY = "rogers.lists.v1";
+const STORAGE_KEY = "rogers.lists.v2";
 const remembered = readStored();
 
 function readStored(): Map<string, unknown> {

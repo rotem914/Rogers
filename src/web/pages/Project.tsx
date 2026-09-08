@@ -245,6 +245,26 @@ export function Project() {
 		else notes.refetch();
 	}
 
+	/* The one item on a tab's right-click menu that reads "Add checklist" or
+	   "Remove checklist", depending on which way the tab's own switch is set.
+	   The marks live on the notes and are never touched from here, so taking a
+	   checklist away and putting it back finds every mark where it was. */
+	async function toggleChecklist(target: string) {
+		const on = tabs.data?.find((tab) => tab.id === target)?.checklist ?? false;
+		setTabFailed(null);
+		try {
+			const body: UpdateTabBody = { checklist: !on };
+			await apiFetch<Tab>(`/api/projects/${id}/tabs/${target}`, {
+				method: "PATCH",
+				body: JSON.stringify(body),
+			});
+		} catch {
+			setTabFailed(on ? "Could not remove the checklist." : "Could not add the checklist.");
+			return;
+		}
+		tabs.refetch();
+	}
+
 	/* The order the strip was dragged into, saved for the whole project. Main is
 	   not in the list: it has no row, so it stays the first chip. It throws on
 	   failure so the strip can put itself back where the Worker still has it. */
@@ -361,6 +381,10 @@ export function Project() {
 		);
 	}
 
+	/* Whether the open tab draws checkboxes. Main never does: it has no row to
+	   keep the switch in, and no menu to turn it on from. */
+	const checklist = tabs.data?.find((tab) => tab.id === tabId)?.checklist ?? false;
+
 	const pinned = shown?.filter((note) => note.pinnedAt !== null) ?? [];
 	const others = shown?.filter((note) => note.pinnedAt === null) ?? [];
 	const sectioned = pinned.length > 0;
@@ -380,6 +404,7 @@ export function Project() {
 						onAdd={() => void addTab()}
 						onRename={renameTab}
 						onRemove={(removedId) => void removeTab(removedId)}
+						onToggleChecklist={(target) => void toggleChecklist(target)}
 						onReorder={reorderTabs}
 					/>
 				}
@@ -401,6 +426,7 @@ export function Project() {
 						projectId={project.id}
 						tabId={tabId}
 						notes={pinned}
+						checklist={checklist}
 						onChanged={notes.refetch}
 						onOrderFailed={setOrderFailed}
 					/>
@@ -410,6 +436,7 @@ export function Project() {
 					projectId={project.id}
 					tabId={tabId}
 					notes={others}
+					checklist={checklist}
 					onChanged={notes.refetch}
 					onOrderFailed={setOrderFailed}
 				/>
@@ -445,6 +472,7 @@ function Section({
 	projectId,
 	tabId,
 	notes,
+	checklist,
 	onChanged,
 	onOrderFailed,
 }: {
@@ -453,6 +481,8 @@ function Section({
 	/** The tab this list is, or null for Main; the saved order answers with it. */
 	tabId: string | null;
 	notes: NotePreview[];
+	/** True while the open tab has a checklist: every row draws a checkbox. */
+	checklist: boolean;
 	onChanged: () => void;
 	onOrderFailed: (failed: boolean) => void;
 }) {
@@ -557,7 +587,7 @@ function Section({
 						onDragEnd={endDrag}
 						className={dragging === note.id ? "opacity-50" : undefined}
 					>
-						<NoteRow note={note} onChanged={onChanged} />
+						<NoteRow note={note} checklist={checklist} onChanged={onChanged} />
 					</li>
 				))}
 			</ul>

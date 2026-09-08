@@ -49,6 +49,8 @@ export type Tab = {
 	id: string;
 	projectId: string;
 	name: string;
+	/** True once "Add checklist" was used on this tab: every row draws a box. */
+	checklist: boolean;
 	createdAt: string;
 	updatedAt: string;
 };
@@ -63,6 +65,8 @@ export type NotePreview = {
 	images: string[];
 	/** Null means unpinned. Sorting is done by the Worker; this splits the sections. */
 	pinnedAt: string | null;
+	/** The row's own mark, drawn only while its tab has a checklist. */
+	checked: boolean;
 };
 
 /** One note, on its own page. */
@@ -130,6 +134,8 @@ export type CreateTabBody = {
 export type UpdateTabBody = {
 	name?: string;
 	archived?: boolean;
+	/** True gives every row in this tab a checkbox, false takes it away. */
+	checklist?: boolean;
 };
 
 /**
@@ -151,6 +157,8 @@ export type UpdateNoteBody = {
 	images?: string[];
 	/** True pins it now, false unpins it. The Worker writes the timestamp. */
 	pinned?: boolean;
+	/** The checklist mark. It changes nothing else about the note. */
+	checked?: boolean;
 };
 
 /**

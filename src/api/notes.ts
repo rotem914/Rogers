@@ -43,7 +43,7 @@ function listSql(scope: string): string {
 	return `
 	SELECT id, project_id, tab_id, title,
 	       substr(body, 1, ${PREVIEW_LENGTH}) AS body,
-	       images, pinned_at, position, created_at, updated_at, archived_at
+	       images, pinned_at, checked, position, created_at, updated_at, archived_at
 	  FROM notes
 	 WHERE project_id = ? AND archived_at IS NULL AND ${scope}
 	 ORDER BY (pinned_at IS NULL),
@@ -360,6 +360,17 @@ notes.patch("/:id", async (c) => {
 			assignments.push("pinned_at = NULL");
 			assignments.push("position = NULL");
 		}
+	}
+
+	if (body !== null && "checked" in body) {
+		if (typeof body.checked !== "boolean") {
+			return c.json<ApiErrorBody>({ error: "Checked must be true or false." }, 400);
+		}
+		/* The mark and nothing else. It is not a pin: it moves no row, splits no
+		   section and never touches the title, the body or the pictures, so it
+		   cannot take part in losing text the way a full assignment could. */
+		assignments.push("checked = ?");
+		values.push(body.checked ? 1 : 0);
 	}
 
 	if (assignments.length === 0) {

@@ -68,6 +68,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-06 · Main is not a row, and a removed tab's notes fall back to Main
 - 2026-09-06 · Main's name lives on the project, and tab undo replays actions
 - 2026-09-07 · Lists are remembered across screens, the note editor never is
+- 2026-09-08 · A checklist is the tab's switch, and the mark is the note's own
 - 2026-09-07 · The remembered lists live in local storage, by the owner's call
 - 2026-09-08 · Coming back to a project restores its place, from a page-lifetime map
 - 2026-09-08 · Tabs are dragged into order, and Main is not one of them
@@ -583,3 +584,43 @@ once, never for this one alone.
 The deploy rule this inherits: the remote migration runs before the Worker
 ships, or the tabs list answers 500 for every project, since the list query now
 names a column the live database does not have yet.
+
+## 2026-09-08 — A checklist is the tab's switch, and the mark is the note's own
+
+### Context
+Rotem asked for "Add checklist" on a tab's right-click menu: every row in that
+tab then draws a checkbox, and clicking one marks it and saves it. The mark has
+no other job. That leaves one real question, because two different things have
+to be stored: the switch that turns the boxes on, and the mark on each row.
+
+### Options
+1. Both on the tab: the switch, and a list of the ids that are marked.
+2. The switch on the tab, the mark on the note.
+3. Neither stored on the server; keep both in the browser's own storage.
+
+### Decision
+Option 2. `tabs.checklist` is the switch, `notes.checked` is the mark, both
+nullable columns added by `migrations/0007_checklist.sql`.
+
+### Consequences
+A note carries its own mark, so a note that moves between tabs keeps it, and
+turning the switch off and on again finds every mark exactly where it was
+rather than wiping the lot. Nothing has to keep a list of ids in step with the
+notes that exist, which is the way option 1 goes wrong the first time a note is
+archived. Main has no row of its own, so it cannot hold the switch and can
+never have a checklist; that is the same limit that already stops Main being
+renamed on the server or removed. The marks are on the server, so they are the
+same on the phone and on the desktop, which option 3 could not do.
+
+What this costs: the note wire shape gained a field, which means the lists
+remembered in the browser's storage had to be versioned up, and every list is
+fetched once more than it would have been on the first load after this ships.
+
+What must not break: the mark is only ever written on its own. It must never
+join a save that carries the title, the body or the pictures, or it becomes one
+more way for a note's text to be overwritten by an older answer.
+
+Worth revisiting if the mark ever has to DO something, hide a row, cross it
+out, or sort it to the bottom. All three are list behaviour, and the moment one
+of them lands the row order stops being the only thing that decides what is on
+screen.

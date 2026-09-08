@@ -34,6 +34,7 @@ export function TabStrip({
 	onAdd,
 	onRename,
 	onRemove,
+	onToggleChecklist,
 	onReorder,
 }: {
 	projectId: string;
@@ -47,6 +48,8 @@ export function TabStrip({
 	 *  saved, so the field can say so where it sits. */
 	onRename: (id: string | null, name: string) => Promise<void>;
 	onRemove: (id: string) => void;
+	/** Turns that tab's checkbox column on, or off again. Main has no menu. */
+	onToggleChecklist: (id: string) => void;
 	/** The tabs after Main, in their new order. Rejects when it was not saved,
 	 *  so the strip can go back to the order the Worker still holds. */
 	onReorder: (ids: string[]) => Promise<void>;
@@ -156,6 +159,8 @@ export function TabStrip({
 									active={activeId === tab.id}
 									onRename={(name) => onRename(tab.id, name)}
 									onRemove={() => onRemove(tab.id)}
+									checklist={tab.checklist}
+									onToggleChecklist={() => onToggleChecklist(tab.id)}
 								/>
 							</div>
 						))}
@@ -198,6 +203,8 @@ function TabChip({
 	active,
 	onRename,
 	onRemove,
+	checklist = false,
+	onToggleChecklist,
 }: {
 	name: string;
 	to: string;
@@ -205,6 +212,10 @@ function TabChip({
 	onRename?: (name: string) => Promise<void>;
 	/** Left out on Main, which cannot be removed. */
 	onRemove?: () => void;
+	/** Whether this tab already has one, which is what the item says. */
+	checklist?: boolean;
+	/** Left out on Main too: the menu itself only exists on a real tab. */
+	onToggleChecklist?: () => void;
 }) {
 	const [editing, setEditing] = useState(false);
 	const [draft, setDraft] = useState(name);
@@ -326,10 +337,23 @@ function TabChip({
 					role="menu"
 					className="absolute top-full left-0 z-20 mt-1 w-36 overflow-hidden rounded-card border border-border bg-surface shadow-raised"
 				>
+					{onToggleChecklist !== undefined && (
+						<button
+							type="button"
+							role="menuitem"
+							autoFocus
+							onClick={() => {
+								setMenuOpen(false);
+								onToggleChecklist();
+							}}
+							className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-surface-hover"
+						>
+							{checklist ? "Remove checklist" : "Add checklist"}
+						</button>
+					)}
 					<button
 						type="button"
 						role="menuitem"
-						autoFocus
 						onClick={() => {
 							setMenuOpen(false);
 							onRemove();

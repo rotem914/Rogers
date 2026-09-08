@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import type { Note, NotePreview } from "../../shared/types";
+import type { Note, NotePreview, UpdateNoteBody } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
 import { ImageStrip } from "./ImageStrip";
 
@@ -18,15 +18,38 @@ const MENU_WIDTH = 144;
 
 export function NoteRow({
 	note,
+	checklist,
 	onChanged,
 }: {
 	note: NotePreview;
+	/** True while this tab has a checklist: the row draws a box on its left. */
+	checklist: boolean;
 	/** The list refetches after a pin or an archive. */
 	onChanged: () => void;
 }) {
 	const untitled = note.title.trim() === "";
 	const empty = untitled && note.preview.trim() === "";
 	const pinned = note.pinnedAt !== null;
+
+	/* The mark, held here as well as on the server so the box answers the click
+	   at once instead of after the round trip. A save that fails puts it back,
+	   so the box never shows a mark the note does not carry. Nothing else reads
+	   this: the mark hides no row and reorders nothing.
+
+	   The second piece of state is what the list last said, and it is what makes
+	   the copy above safe. The project page remembers its lists in the browser's
+	   own storage, so a reload paints the last answer before the fresh one lands;
+	   a box seeded once from that first answer would keep showing an old mark for
+	   as long as the row stayed mounted. Following the list instead means the
+	   fresh answer wins, and the click still paints at once. Set during render on
+	   purpose, the same as the tab switch on the project page: an effect would
+	   run a frame too late and the wrong mark would be on screen for it. */
+	const [checked, setChecked] = useState(note.checked);
+	const [listSaid, setListSaid] = useState(note.checked);
+	if (listSaid !== note.checked) {
+		setListSaid(note.checked);
+		setChecked(note.checked);
+	}
 
 	/* Pinning and archiving live on the right-click menu, so the row carries no
 	   buttons of its own and stays quiet. Same shape as the tab chips: the point
@@ -69,6 +92,25 @@ export function NoteRow({
 		onChanged();
 	}
 
+	async function mark() {
+		const next = !checked;
+		setChecked(next);
+		const body: UpdateNoteBody = { checked: next };
+		try {
+			await apiFetch<Note>(`/api/notes/${note.id}`, {
+				method: "PATCH",
+				body: JSON.stringify(body),
+			});
+		} catch {
+			setChecked(!next);
+			return;
+		}
+		/* The list is refetched for the same reason a pin refetches it: the
+		   remembered copy in the browser's storage is rewritten by that answer,
+		   so the next reload paints the mark instead of flashing the old one. */
+		onChanged();
+	}
+
 	async function archive() {
 		try {
 			await apiFetch<Note>(`/api/notes/${note.id}`, { method: "DELETE" });
@@ -77,6 +119,40 @@ export function NoteRow({
 		}
 		onChanged();
 	}
+
+	/* The row's own text and pictures, in both layouts below. */
+	const content = (
+		<>
+			{!untitled && (
+				<span className="bidi block break-words text-lg font-medium">{note.title}</span>
+			)}
+
+			{note.preview.trim() !== "" && (
+				/* Three lines at most, so one long note cannot push the rest of the
+				   list off the screen. No `block` here on purpose: line-clamp needs
+				   display:-webkit-box and Tailwind emits .block afterwards, which
+				   would silently kill the clamp. break-words is for a pasted link,
+				   one unbroken word that would otherwise run past the edge. */
+				<span
+					className={`bidi line-clamp-3 break-words whitespace-pre-wrap text-lg text-muted ${
+						untitled ? "" : "mt-1"
+					}`}
+				>
+					{note.preview}
+				</span>
+			)}
+
+			{empty && note.images.length === 0 && (
+				<span className="block text-faint">Empty note</span>
+			)}
+
+			{note.images.length > 0 && (
+				<div className={untitled && note.preview.trim() === "" ? "" : "mt-2"}>
+					<ImageStrip keys={note.images} size="sm" />
+				</div>
+			)}
+		</>
+	);
 
 	return (
 		<div
@@ -103,36 +179,38 @@ export function NoteRow({
 				className="absolute inset-0 rounded-[10px]"
 			/>
 
-			<div className="pointer-events-none">
-				{!untitled && (
-					<span className="bidi block truncate text-lg font-medium">{note.title}</span>
-				)}
-
-				{note.preview.trim() !== "" && (
-					/* Three lines at most, so one long note cannot push the rest of the
-					   list off the screen. No `block` here on purpose: line-clamp needs
-					   display:-webkit-box and Tailwind emits .block afterwards, which
-					   would silently kill the clamp. break-words is for a pasted link,
-					   one unbroken word that would otherwise run past the edge. */
-					<span
-						className={`bidi line-clamp-3 break-words whitespace-pre-wrap text-lg text-muted ${
-							untitled ? "" : "mt-1"
-						}`}
+			{checklist ? (
+				/* 16px between the box and the text, and the box holds its width so a
+				   long title wraps beside it rather than under it. */
+				<div className="flex items-start gap-4">
+					<button
+						type="button"
+						role="checkbox"
+						aria-checked={checked}
+						aria-label={untitled ? "Mark note" : `Mark ${note.title}`}
+						onClick={() => void mark()}
+						className="relative z-10 flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 border-muted"
 					>
-						{note.preview}
-					</span>
-				)}
-
-				{empty && note.images.length === 0 && (
-					<span className="block text-faint">Empty note</span>
-				)}
-
-				{note.images.length > 0 && (
-					<div className={untitled && note.preview.trim() === "" ? "" : "mt-2"}>
-						<ImageStrip keys={note.images} size="sm" />
-					</div>
-				)}
-			</div>
+						{/* Drawn on a 14 unit box at 14px, so the 2 unit stroke really is
+						    2px on screen rather than 2 units scaled down to something else. */}
+						<svg
+							viewBox="0 0 14 14"
+							aria-hidden="true"
+							className={`size-[14px] ${checked ? "text-text" : "text-transparent"}`}
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
+							<path d="M2.5 7.5 5.5 10.5 11.5 3.5" />
+						</svg>
+					</button>
+					<div className="pointer-events-none min-w-0 flex-1">{content}</div>
+				</div>
+			) : (
+				<div className="pointer-events-none">{content}</div>
+			)}
 
 			{point !== null && (
 				<div

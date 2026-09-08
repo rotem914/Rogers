@@ -1,8 +1,8 @@
 /* The pictures in a note: thumbnails, a remove button on each, and the
  * lightbox that opens when one is clicked.
  *
- * Read-only in a row (no remove, no lightbox), editable in the composer and
- * on the note page. */
+ * A picture opens the lightbox everywhere, a row included; only the composer
+ * and the note page can also remove one. */
 
 import { useEffect, useState } from "react";
 import { imageSrc } from "../lib/upload";
@@ -37,12 +37,23 @@ export function ImageStrip({
 						className={`group/thumb relative ${size === "lg" ? "w-fit max-w-full" : ""}`}
 					>
 						{onRemove === undefined ? (
-							<img
-								src={imageSrc(key, "sm")}
-								alt=""
-								loading="lazy"
-								className={`${box} rounded-card border border-border object-cover`}
-							/>
+							/* In a note row the whole card is covered by a link to the
+							   note, so the picture has to sit above it and take its own
+							   clicks back: z-10 over the link, and pointer-events-auto
+							   because the row switches them off for everything under it. */
+							<button
+								type="button"
+								aria-label="Open image"
+								onClick={() => setOpen(key)}
+								className={`${box} relative z-10 block overflow-hidden rounded-card border border-border pointer-events-auto`}
+							>
+								<img
+									src={imageSrc(key, "sm")}
+									alt=""
+									loading="lazy"
+									className="size-full object-cover"
+								/>
+							</button>
 						) : (
 							<>
 								<button
@@ -95,9 +106,16 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 			role="dialog"
 			aria-label="Image"
 			onClick={onClose}
-			className="fixed inset-0 z-40 flex items-center justify-center bg-bg/90 p-6"
+			className="fixed inset-0 z-40 flex items-center justify-center bg-bg/90 p-14"
 		>
-			<img src={src} alt="" className="max-h-full max-w-full rounded-card object-contain" />
+			{/* Not draggable: a picture drags itself by default, so pressing on it and
+			    moving a hair starts a drag and the click that closes this never fires. */}
+			<img
+				src={src}
+				alt=""
+				draggable={false}
+				className="max-h-full max-w-full rounded-card object-contain"
+			/>
 		</div>
 	);
 }
