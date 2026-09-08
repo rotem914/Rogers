@@ -276,6 +276,24 @@ reads, checks both halves of that bargain:
 3. Every screen still sends its request on open; a remembered list is a first
    paint, never a reason to skip the fetch.
 
+## 10f. The place a project list was left
+
+A project page remembers how far down it was scrolled, but only for the trip
+into a note. Any change to that page, or to what puts it on screen, checks the
+whole round trip:
+
+1. Open a project with enough notes to scroll, scroll well down, and read
+   `window.scrollY`.
+2. Open a note from a row, then press the back arrow: the same offset, within a
+   few pixels, and no visible jump from the top on the way.
+3. Do it again with Escape and with the browser's own back button.
+4. Go back to Home and open the project again: it starts at the top. Landing
+   mid-list here is the regression, and it is what Rotem rejected on
+   2026-09-08.
+5. Switch tabs on that page: the offset is left alone, and the previous tab's
+   rows still never show under the new tab's name.
+6. Reload: the page starts at the top, which is the intended limit.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

@@ -69,6 +69,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-06 · Main's name lives on the project, and tab undo replays actions
 - 2026-09-07 · Lists are remembered across screens, the note editor never is
 - 2026-09-07 · The remembered lists live in local storage, by the owner's call
+- 2026-09-08 · Coming back to a project restores its place, from a page-lifetime map
 
 ---
 
@@ -496,3 +497,41 @@ The full note is still never stored, so the editor always starts from the
 server. If Rogers is ever used on a shared machine, this is the entry to
 revisit: one word in `useApi.ts` moves it back. Logging out does not clear
 the copy; a "clear on logout" would need a logout the app does not have.
+
+## 2026-09-08 - Coming back to a project restores its place, from a page-lifetime map
+
+### Context
+
+Opening a note and pressing back is a fresh arrival at the project's address,
+not a step back through history, so the list started at the top again. The note
+page rejects history-based back on purpose: a note opened from a link has no
+history to step through.
+
+### Options
+
+1. Step back through history when there is history, and navigate to the address
+   otherwise.
+2. Remember the offset per address, for every arrival at that address.
+3. Remember it only for the trip to a note, and forget it the moment the page
+   is left for Home.
+4. Any of the above, persisted in storage, so a reload lands where it was too.
+
+### Decision
+
+Option 3, Rotem's, on 2026-09-08, after option 2 put him mid-list when he
+opened a project from Home.
+
+The page cannot be told where a visit came from, so it is told where each visit
+GOES instead: the address bar has already moved by the time the page is taken
+down, so leaving for a note keeps the offset and leaving for anything else
+drops it.
+
+### Consequences
+
+Every way back from a note lands in place, the arrow, Escape and the browser's
+own back button, because what is remembered hangs off the address rather than
+off the way the address was reached. Opening a project from Home always starts
+at the top. A reload starts at the top too, which option 4 would change in two
+lines. Nothing is written to storage, so no note text leaves memory. The one
+thing a future change must not break: the departure is judged by the address
+bar, so a new screen between the list and a note would have to be named there.

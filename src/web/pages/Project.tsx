@@ -5,7 +5,7 @@
  * Worker; this file splits the two and lets each one be dragged into a new
  * order of its own. */
 
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type DragEvent } from "react";
 import { useParams, useSearchParams } from "react-router";
 import type {
 	CreateTabBody,
@@ -25,6 +25,16 @@ import { NoteRow } from "../components/NoteRow";
 import { Composer, type ComposerHandle } from "../components/Composer";
 import { TabStrip } from "../components/TabStrip";
 import { Toast } from "../components/Feedback";
+
+/* How far down a list was scrolled when it was left FOR A NOTE, for as long as
+   the app is open. Opening a note and coming back is a fresh arrival at the
+   project's address, not a step back through history, so nothing puts the page
+   back on its own and the list would start at the top again.
+
+   Only that one trip is remembered, Rotem's call on 2026-09-08: leaving for
+   Home forgets the place, so opening a project from Home always starts at the
+   top. Keyed by the address, so every tab keeps its own. */
+const scrollTops = new Map<string, number>();
 
 export function Project() {
 	const { id } = useParams<{ id: string }>();
@@ -76,6 +86,46 @@ export function Project() {
 	});
 	if (left.tab !== tabId) setLeft({ tab: tabId, list: notes.data });
 	const shown = notes.data === left.list ? null : notes.data;
+
+	/* Back where the list was left, once and only on the arrival. The address
+	   comes from the URL rather than from the tabs answer, so it is the same
+	   string on the first render as on the last. The rows have to be on screen
+	   first, both the project and its list, or there is nothing tall enough to
+	   scroll to and the one attempt is spent on the empty shell. */
+	const address = `${id ?? ""}|${requestedTab ?? ""}`;
+	const top = useRef(0);
+	const restored = useRef(false);
+	const rowsOnScreen = !projects.loading && project !== null && shown !== null;
+	useLayoutEffect(() => {
+		if (restored.current || !rowsOnScreen) return;
+		restored.current = true;
+		const lastTop = scrollTops.get(address);
+		if (lastTop !== undefined && lastTop > 0) {
+			window.scrollTo(0, lastTop);
+			top.current = lastTop;
+		}
+	}, [rowsOnScreen, address]);
+
+	/* The offset is followed in a ref, not read on the way out: by the time this
+	   effect is cleaned up the note page has replaced the rows, and asking the
+	   browser for the offset then answers with what fits the shorter page.
+
+	   Where the visit went decides whether it is kept. The address bar has
+	   already moved by then, so a note keeps the place and Home clears it; the
+	   page still being itself means React only re-ran the effect, on a tab
+	   switch or on its development double mount, and neither is a departure. */
+	useEffect(() => {
+		function onScroll() {
+			top.current = window.scrollY;
+		}
+		window.addEventListener("scroll", onScroll, { passive: true });
+		return () => {
+			window.removeEventListener("scroll", onScroll);
+			const now = window.location.pathname;
+			if (now.startsWith("/n/")) scrollTops.set(address, top.current);
+			else if (now !== `/p/${id}`) scrollTops.delete(address);
+		};
+	}, [address, id]);
 
 	/* The other tabs' lists are fetched as soon as the tabs are known, so the
 	   first switch to any of them paints at once. A list already remembered is
