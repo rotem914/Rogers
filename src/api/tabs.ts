@@ -7,7 +7,13 @@
  * mis-click never puts a note out of reach. */
 
 import { Hono } from "hono";
-import type { ApiErrorBody, CreateTabBody, Tab, UpdateTabBody } from "../shared/types";
+import type {
+	ApiErrorBody,
+	CreateTabBody,
+	ReorderTabsBody,
+	Tab,
+	UpdateTabBody,
+} from "../shared/types";
 import { errorBody, isUsableId, readJson } from "./http";
 import { projectIsLive } from "./notes";
 import { toTab, type TabRow } from "./rows";
@@ -17,11 +23,14 @@ export const projectTabs = new Hono<{ Bindings: Env }>();
 /** What a tab is called when it is made, until it is renamed. */
 const DEFAULT_NAME = "New tab";
 
-/* In the order they were made. There is no dragging here yet. */
+/* Dragged order first, then creation order for whatever has never been dragged.
+   `position IS NULL` is 0 or 1 in SQLite, so tabs that carry a position sort
+   ahead of the ones that do not, and a project nobody has ever rearranged keeps
+   the exact order it had before this column existed. */
 const LIST_SQL = `
 	SELECT * FROM tabs
 	 WHERE project_id = ? AND archived_at IS NULL
-	 ORDER BY created_at ASC
+	 ORDER BY position IS NULL, position ASC, created_at ASC
 `;
 
 /* Deliberately finds archived tabs too, so a repeated remove answers calmly. */
@@ -81,6 +90,58 @@ projectTabs.post("/", async (c) => {
 	}
 
 	return c.json<Tab>({ id, projectId, name, createdAt: now, updatedAt: now }, 201);
+});
+
+/* The order the strip shows, written in one go.
+ *
+ * Ahead of the :id routes on purpose, the same as the projects one. Nothing
+ * matches both today, since this is the only PUT here, but a tab whose id was
+ * "order" is one route away from being unreachable and this costs nothing.
+ *
+ * Main is never in the list. It has no row, so it has nowhere to keep a
+ * position, and it stays the first chip in the strip.
+ *
+ * Positions are written for every id in the list, not just the moved one, so
+ * the stored order and the order on screen are the same fact rather than two
+ * that have to agree. */
+projectTabs.put("/order", async (c) => {
+	const projectId = c.req.param("projectId");
+	if (projectId === undefined || !(await projectIsLive(c.env.DB, projectId))) {
+		return c.json<ApiErrorBody>({ error: "No such project." }, 404);
+	}
+
+	const body = await readJson<ReorderTabsBody>(c.req.raw);
+	const ids = body === null ? undefined : body.ids;
+
+	if (!Array.isArray(ids) || !ids.every(isUsableId)) {
+		return c.json(errorBody("An order is a list of tab ids."), 400);
+	}
+
+	/* A repeated id would give one tab two positions and leave another with
+	   none, which is a half-applied order rather than a wrong one. */
+	if (new Set(ids).size !== ids.length) {
+		return c.json(errorBody("That order names a tab twice."), 400);
+	}
+
+	if (ids.length > 0) {
+		const now = new Date().toISOString();
+		const statement = c.env.DB.prepare(
+			`UPDATE tabs SET position = ?, updated_at = ?
+			 WHERE id = ? AND project_id = ? AND archived_at IS NULL`,
+		);
+
+		/* One batch, so a connection lost halfway cannot leave the strip holding
+		   part of the old order and part of the new one. An id the list names but
+		   this project does not have simply changes nothing: the order is a view
+		   of what the browser had on screen, and a stale entry in it is not a
+		   reason to refuse the rest. */
+		await c.env.DB.batch(
+			ids.map((id, index) => statement.bind(index, now, id, projectId)),
+		);
+	}
+
+	const { results } = await c.env.DB.prepare(LIST_SQL).bind(projectId).all<TabRow>();
+	return c.json<Tab[]>(results.map(toTab));
 });
 
 projectTabs.patch("/:id", async (c) => {

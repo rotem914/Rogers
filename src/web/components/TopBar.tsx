@@ -93,23 +93,48 @@ export function TopBar({ backTo, onBack, title, trailing, center }: TopBarProps)
 	   900px there is no gutter to hang in, so it rejoins the row.
 
 	   Below 900px the columns stack, and the 18px bar padding is pulled back by
-	   2px so the strip still starts on the cards' own 16px edge. */
+	   2px so the strip still starts on the cards' own 16px edge.
+
+	   The strip is its own sticky box, outside the bar, and that is the point:
+	   one sticky box can pin only one thing, and Rotem wants the tabs at the
+	   window's edge while the title stays exactly where it sits. The bar's row
+	   is held at the strip's own height, 63px, being 12px of air, a 39px chip
+	   and 12px more, and the strip is pulled straight back up onto it, so at
+	   rest the two read as one row and on the way down they part. Below 900px
+	   the columns stack: the row gives up its fixed height and the strip keeps
+	   the columns stack, and there the two pin one under the other, the title
+	   row first at the window's edge and the strip right below it, which is why
+	   the strip's offset there is the bar's own height: 24px of head room and a
+	   48px title row. */
 	return (
-		<header className="sticky top-0 z-10 flex min-h-topbar items-center pt-14">
-			<div className="mx-auto grid w-full max-w-[1324px] grid-cols-[1fr_minmax(0,752px)_1fr] items-center max-[900px]:grid-cols-1 max-[900px]:gap-y-2 max-[900px]:px-[18px]">
-				<div className="flex min-w-0 items-center pl-[72px] max-[900px]:gap-3 max-[900px]:pl-0">
-					{backTo !== undefined && (
-						<div className="relative w-0 shrink-0 max-[900px]:w-auto">
-							<div className="absolute top-1/2 right-3 -translate-y-1/2 max-[900px]:static max-[900px]:translate-y-0">
-								{back}
+		<>
+			<header className="pointer-events-none sticky top-0 z-10 flex min-h-topbar items-center pt-14 max-[900px]:pointer-events-auto max-[900px]:bg-bg max-[900px]:pt-6">
+				<div className="mx-auto grid h-[63px] w-full max-w-[1324px] grid-cols-[1fr_minmax(0,752px)_1fr] items-center max-[900px]:h-auto max-[900px]:grid-cols-1 max-[900px]:gap-y-2 max-[900px]:px-[18px]">
+					<div className="pointer-events-auto col-start-1 flex min-w-0 items-center pl-[72px] max-[900px]:h-12 max-[900px]:gap-3 max-[900px]:pl-0">
+						{backTo !== undefined && (
+							<div className="relative w-0 shrink-0 max-[900px]:w-auto">
+								<div className="absolute top-1/2 right-3 -translate-y-1/2 max-[900px]:static max-[900px]:translate-y-0">
+									{back}
+								</div>
 							</div>
+						)}
+						{heading}
+					</div>
+					{trailing !== undefined && (
+						<div className="pointer-events-auto col-start-3 justify-self-end pr-[72px] max-[900px]:col-start-1 max-[900px]:pr-0">
+							{trailing}
 						</div>
 					)}
-					{heading}
 				</div>
-				<div className="min-w-0 px-4 max-[900px]:-ml-[2px] max-[900px]:px-0">{center}</div>
-				<div className="justify-self-end pr-[72px] max-[900px]:pr-0">{trailing}</div>
+			</header>
+
+			<div className="pointer-events-none sticky top-0 z-20 -mt-[63px] max-[900px]:top-[72px] max-[900px]:mt-0">
+				<div className="mx-auto grid w-full max-w-[1324px] grid-cols-[1fr_minmax(0,752px)_1fr] max-[900px]:grid-cols-1 max-[900px]:px-[18px]">
+					<div className="pointer-events-auto col-start-2 min-w-0 px-4 max-[900px]:col-start-1 max-[900px]:-ml-[2px] max-[900px]:px-0">
+						{center}
+					</div>
+				</div>
 			</div>
-		</header>
+		</>
 	);
 }

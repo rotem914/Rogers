@@ -12,6 +12,7 @@ import type {
 	NotePreview,
 	Project as ProjectType,
 	ReorderNotesBody,
+	ReorderTabsBody,
 	Tab,
 	UpdateProjectBody,
 	UpdateTabBody,
@@ -244,6 +245,24 @@ export function Project() {
 		else notes.refetch();
 	}
 
+	/* The order the strip was dragged into, saved for the whole project. Main is
+	   not in the list: it has no row, so it stays the first chip. It throws on
+	   failure so the strip can put itself back where the Worker still has it. */
+	async function reorderTabs(ids: string[]) {
+		setTabFailed(null);
+		try {
+			const body: ReorderTabsBody = { ids };
+			await apiFetch<Tab[]>(`/api/projects/${id}/tabs/order`, {
+				method: "PUT",
+				body: JSON.stringify(body),
+			});
+		} catch (error) {
+			setTabFailed("Could not save the new tab order.");
+			throw error;
+		}
+		tabs.refetch();
+	}
+
 	/* One step back, or forward. Each action has exactly one opposite, and the
 	   step leaves the history only once the Worker agreed, so a failed undo can
 	   simply be pressed again. */
@@ -361,6 +380,7 @@ export function Project() {
 						onAdd={() => void addTab()}
 						onRename={renameTab}
 						onRemove={(removedId) => void removeTab(removedId)}
+						onReorder={reorderTabs}
 					/>
 				}
 			/>

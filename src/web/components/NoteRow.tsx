@@ -3,15 +3,18 @@
  * A row, not a card: the project page is a single column the way Keep's list
  * view is, so a long note and a one-word note sit in the same rhythm.
  *
- * The row is a div with a covering link, so the pin and the menu can sit above
+ * The row is a div with a covering link, so the right-click menu can sit above
  * it as real buttons; a control nested inside a link is neither reliably
  * clickable nor announced properly. */
 
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Note, NotePreview } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
-import { Menu } from "./Menu";
 import { ImageStrip } from "./ImageStrip";
+
+/** The popup's own width, `w-36`, so it can be kept inside the row. */
+const MENU_WIDTH = 144;
 
 export function NoteRow({
 	note,
@@ -24,6 +27,35 @@ export function NoteRow({
 	const untitled = note.title.trim() === "";
 	const empty = untitled && note.preview.trim() === "";
 	const pinned = note.pinnedAt !== null;
+
+	/* Pinning and archiving live on the right-click menu, so the row carries no
+	   buttons of its own and stays quiet. Same shape as the tab chips: the point
+	   is where the menu opens, measured from the row's own corner. The keyboard
+	   reaches this the way it reaches any context menu, with the menu key or
+	   Shift+F10 on the focused row. */
+	const [point, setPoint] = useState<{ x: number; y: number } | null>(null);
+	const root = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (point === null) return;
+		function onPointerDown(event: PointerEvent) {
+			if (root.current !== null && !root.current.contains(event.target as Node)) {
+				setPoint(null);
+			}
+		}
+		function onKey(event: KeyboardEvent) {
+			if (event.key === "Escape") {
+				event.stopPropagation();
+				setPoint(null);
+			}
+		}
+		document.addEventListener("pointerdown", onPointerDown);
+		document.addEventListener("keydown", onKey, true);
+		return () => {
+			document.removeEventListener("pointerdown", onPointerDown);
+			document.removeEventListener("keydown", onKey, true);
+		};
+	}, [point]);
 
 	async function save(body: object) {
 		try {
@@ -47,7 +79,20 @@ export function NoteRow({
 	}
 
 	return (
-		<div className="group relative rounded-[10px] bg-card px-4 py-4 transition-colors duration-[144ms] ease-out hover:bg-card-hover">
+		<div
+			ref={root}
+			onContextMenu={(event) => {
+				event.preventDefault();
+				/* Kept inside the row, so a right-click near the right edge does not
+				   open a menu hanging off it. */
+				const box = event.currentTarget.getBoundingClientRect();
+				setPoint({
+					x: Math.max(0, Math.min(event.clientX - box.left, box.width - MENU_WIDTH)),
+					y: Math.max(0, event.clientY - box.top),
+				});
+			}}
+			className="group relative rounded-[10px] bg-card px-4 py-4 transition-colors duration-[144ms] ease-out hover:bg-card-hover"
+		>
 			{/* Not draggable: a link drags its own address by default, and this one
 			    covers the row, so it would win over dragging the row itself into a
 			    new place in the list. */}
@@ -58,7 +103,7 @@ export function NoteRow({
 				className="absolute inset-0 rounded-[10px]"
 			/>
 
-			<div className="pointer-events-none pr-16">
+			<div className="pointer-events-none">
 				{!untitled && (
 					<span className="bidi block truncate text-lg font-medium">{note.title}</span>
 				)}
@@ -89,29 +134,38 @@ export function NoteRow({
 				)}
 			</div>
 
-			{/* Chrome, top right whatever direction the text runs in. Hidden until
-			    the row is hovered or a control inside it has focus, like Keep. A
-			    pinned star stays visible so the section reads at a glance. */}
-			<div className="absolute top-2 right-2 z-10 flex items-center gap-1 opacity-0 focus-within:opacity-100 group-hover:opacity-100">
-				<button
-					type="button"
-					aria-label={pinned ? "Unpin" : "Pin"}
-					aria-pressed={pinned}
-					onClick={(event) => {
-						event.preventDefault();
-						void save({ pinned: !pinned });
-					}}
-					className={`rounded-card px-2 py-1 hover:bg-surface-hover ${
-						pinned ? "text-accent" : "text-muted"
-					}`}
+			{point !== null && (
+				<div
+					role="menu"
+					aria-label={untitled ? "Actions for note" : `Actions for ${note.title}`}
+					style={{ left: point.x, top: point.y }}
+					className="absolute z-20 w-36 overflow-hidden rounded-card border border-border bg-surface shadow-raised"
 				>
-					{pinned ? "★" : "☆"}
-				</button>
-				<Menu
-					label={untitled ? "Actions for note" : `Actions for ${note.title}`}
-					items={[{ label: "Archive", onSelect: () => void archive(), danger: true }]}
-				/>
-			</div>
+					<button
+						type="button"
+						role="menuitem"
+						autoFocus
+						onClick={() => {
+							setPoint(null);
+							void save({ pinned: !pinned });
+						}}
+						className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-surface-hover"
+					>
+						{pinned ? "Unpin" : "Pin"}
+					</button>
+					<button
+						type="button"
+						role="menuitem"
+						onClick={() => {
+							setPoint(null);
+							void archive();
+						}}
+						className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-danger hover:bg-surface-hover"
+					>
+						Archive
+					</button>
+				</div>
+			)}
 		</div>
 	);
 }

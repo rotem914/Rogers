@@ -20,20 +20,21 @@ export function ImageStrip({
 	const [open, setOpen] = useState<string | null>(null);
 	if (keys.length === 0) return null;
 
-	/* lg is the note page: the picture at its own aspect, as wide as the column
-	   allows and never past 1160px, and the only size that shows the original
-	   bytes; the two small sizes ask for the list copy. */
+	/* lg is the note page: the picture at its own pixel size, pinned top left,
+	   shrunk only when it is wider than the column or past 1160px; the only
+	   size that shows the original bytes, the two small sizes ask for the list
+	   copy. */
 	const box =
-		size === "sm" ? "size-[216px]" : size === "lg" ? "w-full max-w-[1160px]" : "size-24";
-	const fill = size === "lg" ? "block w-full" : "size-full object-cover";
+		size === "sm" ? "size-[216px]" : size === "lg" ? "w-fit max-w-[1160px]" : "size-24";
+	const fill = size === "lg" ? "block h-auto max-w-full" : "size-full object-cover";
 
 	return (
 		<>
-			<ul className={`flex flex-wrap ${size === "sm" ? "gap-4" : size === "lg" ? "gap-6" : "gap-2"}`}>
+			<ul className={`flex flex-wrap ${size === "sm" ? "gap-4" : size === "lg" ? "flex-col items-start gap-6" : "gap-2"}`}>
 				{keys.map((key) => (
 					<li
 						key={key}
-						className={`group/thumb relative ${size === "lg" ? "w-full" : ""}`}
+						className={`group/thumb relative ${size === "lg" ? "w-fit max-w-full" : ""}`}
 					>
 						{onRemove === undefined ? (
 							<img

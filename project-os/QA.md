@@ -253,6 +253,12 @@ of your own, never in Rotem's:
 9. Click the open tab's name: a field opens prefilled. Enter or a click outside
    saves, Escape discards, and the name is back after a reload. Type a Hebrew
    name through the browser, never through a shell (§10b).
+10. Drag a tab along the strip, the dispatched way (§10c): the strip rearranges
+    on `dragenter`, the order survives a reload, and the Worker's own list
+    agrees. Main never moves and is never draggable. A tab added afterwards
+    lands at the end. A drag begun inside the open rename field does nothing.
+    Make the order request fail and the strip goes back to the Worker's order
+    with the toast, rather than showing an order nobody saved.
 
 Two traps of the in-app browser pane, met on 2026-09-06: the key named `Return`
 did nothing where `Enter` worked, and `ctrl+a` did not select a field's text,
@@ -293,6 +299,24 @@ whole round trip:
 5. Switch tabs on that page: the offset is left alone, and the previous tab's
    rows still never show under the new tab's name.
 6. Reload: the page starts at the top, which is the intended limit.
+
+## 10g. A note row's own menu
+
+Pinning and archiving a note from the project page live on the row's
+right-click, and the row carries no buttons of its own. Any change to the row,
+or to what that menu does, checks all of it:
+
+1. Hover a row: no pin star, no three dots, nothing but the row lighting up.
+2. Right-click a row: the menu opens at the cursor with Pin and Archive.
+   Right-click at the row's right edge too: the popup stays inside the card.
+3. Pin: the list splits into PINNED and OTHERS and the row moves up.
+   Right-click it again: it reads Unpin, and unpinning puts the list back.
+4. Archive: only ever on a throwaway note of your own, never on one of
+   Rotem's. The row leaves the list.
+5. Escape closes the menu, a click outside closes it, and a right-click on a
+   second row leaves only one menu open anywhere in the list.
+6. A left click still opens the note page.
+7. Reordering still works, driven the way section 10c prescribes.
 
 ## 11. Prove a tool is missing before you claim it is
 

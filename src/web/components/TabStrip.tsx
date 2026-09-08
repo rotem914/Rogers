@@ -14,11 +14,17 @@
  *
  * The plus is invisible until the strip is hovered, or something inside it
  * takes keyboard focus. It holds its space either way, so nothing shifts when
- * it appears. */
+ * it appears.
+ *
+ * Tabs are dragged into the order they should sit in, the same way the tiles on
+ * Home are: the whole chip is the handle and the strip rearranges under the
+ * mouse rather than only after the drop. Main is not draggable, because it has
+ * no row of its own and so nowhere to keep a position; it stays first. */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Link } from "react-router";
 import type { Tab } from "../../shared/types";
+import { arrange, moved } from "../lib/reorder";
 
 export function TabStrip({
 	projectId,
@@ -28,6 +34,7 @@ export function TabStrip({
 	onAdd,
 	onRename,
 	onRemove,
+	onReorder,
 }: {
 	projectId: string;
 	/** What the first tab is called: "Main" until it is renamed. */
@@ -40,55 +47,147 @@ export function TabStrip({
 	 *  saved, so the field can say so where it sits. */
 	onRename: (id: string | null, name: string) => Promise<void>;
 	onRemove: (id: string) => void;
+	/** The tabs after Main, in their new order. Rejects when it was not saved,
+	 *  so the strip can go back to the order the Worker still holds. */
+	onReorder: (ids: string[]) => Promise<void>;
 }) {
-	return (
-		<div className="group flex flex-wrap items-center gap-1">
-			{tabs.length > 0 && (
-				<>
-					<TabChip
-						name={mainName}
-						to={`/p/${projectId}`}
-						active={activeId === null}
-						onRename={(name) => onRename(null, name)}
-					/>
-					{tabs.map((tab) => (
-						<TabChip
-							key={tab.id}
-							name={tab.name}
-							to={`/p/${projectId}?tab=${tab.id}`}
-							active={activeId === tab.id}
-							onRename={(name) => onRename(tab.id, name)}
-							onRemove={() => onRemove(tab.id)}
-						/>
-					))}
-				</>
-			)}
+	/* The order being dragged: in state so the strip redraws, and in a ref so the
+	   drop handler can read what the last hover wrote, because state is a render
+	   behind by then. An empty list means "however the Worker sent them". */
+	const [order, setOrder] = useState<string[]>([]);
+	const orderRef = useRef<string[]>([]);
+	const [dragging, setDragging] = useState<string | null>(null);
+	const draggedRef = useRef<string | null>(null);
+	const droppedRef = useRef(false);
 
-			{/* Built from the chip's own two numbers, so the two boxes are the same
-			    height by construction rather than by a measurement that can drift:
-			    6px of padding around a 27px line box, which is what 18px text sets.
-			    That makes it 39 square, and the icon sits centred inside it. */}
-			<button
-				type="button"
-				aria-label="Add tab"
-				onClick={onAdd}
-				className="flex shrink-0 items-center cursor-pointer justify-center rounded-pill p-[6px] text-muted opacity-0 transition-opacity duration-[144ms] ease-out group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface-hover hover:text-text focus-visible:opacity-100"
+	const shown = arrange(tabs, order);
+
+	function showOrder(next: string[]) {
+		orderRef.current = next;
+		setOrder(next);
+	}
+
+	function startDrag(event: DragEvent<HTMLDivElement>, id: string) {
+		/* A drag begun inside the rename field would carry the chip off instead
+		   of selecting the text being edited. */
+		if (event.target instanceof HTMLInputElement) {
+			event.preventDefault();
+			return;
+		}
+
+		draggedRef.current = id;
+		droppedRef.current = false;
+		setDragging(id);
+		/* Seeded from what is on screen, so a preview built on top of it can never
+		   disagree with the strip the drag started from. */
+		showOrder(shown.map((tab) => tab.id));
+		event.dataTransfer.effectAllowed = "move";
+		/* Firefox starts no drag at all unless the drag carries something. */
+		event.dataTransfer.setData("text/plain", id);
+	}
+
+	/* Hovering a chip moves the dragged one into its place, so the strip shows
+	   the result while the mouse is still down instead of after it is let go.
+	   Main carries none of this, so nothing can be dropped in front of it. */
+	function dragOnto(id: string) {
+		const dragged = draggedRef.current;
+		if (dragged === null) return;
+		const next = moved(orderRef.current, dragged, id);
+		if (next !== null) showOrder(next);
+	}
+
+	async function drop() {
+		droppedRef.current = true;
+		draggedRef.current = null;
+		setDragging(null);
+
+		const ids = orderRef.current;
+		if (ids.length === 0) return;
+
+		try {
+			await onReorder(ids);
+		} catch {
+			/* Back to the order the Worker still holds. A strip showing an order
+			   that was never saved is worse than one that did not move. */
+			showOrder([]);
+		}
+	}
+
+	function endDrag() {
+		draggedRef.current = null;
+		setDragging(null);
+		/* Let go outside the strip, or cancelled with Escape: put the preview back. */
+		if (!droppedRef.current) showOrder([]);
+	}
+
+	/* The strip carries its own block of the page's own colour, so the cards
+	   scrolling under the sticky bar pass behind the tabs instead of showing
+	   through them. */
+	return (
+		<div className="bg-bg py-3">
+			<div
+				className="group flex flex-wrap items-center gap-1"
+				onDragOver={(event) => {
+					/* Without this the strip is not a drop target and no drop fires. */
+					if (draggedRef.current !== null) event.preventDefault();
+				}}
+				onDrop={() => void drop()}
 			>
-				<span className="flex size-[27px] items-center justify-center">
-					<svg
-						viewBox="0 0 24 24"
-						aria-hidden="true"
-						className="size-5"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<path d="M12 5v14M5 12h14" />
-					</svg>
-				</span>
-			</button>
+				{tabs.length > 0 && (
+					<>
+						<TabChip
+							name={mainName}
+							to={`/p/${projectId}`}
+							active={activeId === null}
+							onRename={(name) => onRename(null, name)}
+						/>
+						{shown.map((tab) => (
+							<div
+								key={tab.id}
+								draggable
+								onDragStart={(event) => startDrag(event, tab.id)}
+								onDragEnter={() => dragOnto(tab.id)}
+								onDragEnd={endDrag}
+								className={`flex ${dragging === tab.id ? "opacity-50" : ""}`}
+							>
+								<TabChip
+									name={tab.name}
+									to={`/p/${projectId}?tab=${tab.id}`}
+									active={activeId === tab.id}
+									onRename={(name) => onRename(tab.id, name)}
+									onRemove={() => onRemove(tab.id)}
+								/>
+							</div>
+						))}
+					</>
+				)}
+
+				{/* Built from the chip's own two numbers, so the two boxes are the same
+				    height by construction rather than by a measurement that can drift:
+				    6px of padding around a 27px line box, which is what 18px text sets.
+				    That makes it 39 square, and the icon sits centred inside it. */}
+				<button
+					type="button"
+					aria-label="Add tab"
+					onClick={onAdd}
+					className="flex shrink-0 items-center cursor-pointer justify-center rounded-pill p-[6px] text-muted opacity-0 transition-opacity duration-[144ms] ease-out group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-surface-hover hover:text-text focus-visible:opacity-100"
+				>
+					<span className="flex size-[27px] items-center justify-center">
+						<svg
+							viewBox="0 0 24 24"
+							aria-hidden="true"
+							className="size-5"
+							fill="none"
+							stroke="currentColor"
+							strokeWidth="2"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+						>
+							<path d="M12 5v14M5 12h14" />
+						</svg>
+					</span>
+				</button>
+			</div>
 		</div>
 	);
 }
@@ -211,7 +310,14 @@ function TabChip({
 					{name}
 				</button>
 			) : (
-				<Link to={to} aria-current={active ? "page" : undefined} className={nameClass}>
+				/* A link drags its own address by default and would win over the
+				   chip's drag, so it is told not to. */
+				<Link
+					to={to}
+					draggable={false}
+					aria-current={active ? "page" : undefined}
+					className={nameClass}
+				>
 					{name}
 				</Link>
 			)}

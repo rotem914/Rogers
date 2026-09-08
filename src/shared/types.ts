@@ -132,6 +132,18 @@ export type UpdateTabBody = {
 	archived?: boolean;
 };
 
+/**
+ * The whole list of tab ids, in the order the strip should show them.
+ *
+ * The whole list rather than the one that moved, for the same reason a
+ * project's order sends all of them: a position only means something next to
+ * its neighbours. Main is never in it, since it has no row to keep one in and
+ * stays the first chip.
+ */
+export type ReorderTabsBody = {
+	ids: string[];
+};
+
 export type UpdateNoteBody = {
 	title?: string;
 	body?: string;

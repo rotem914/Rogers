@@ -70,6 +70,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-07 · Lists are remembered across screens, the note editor never is
 - 2026-09-07 · The remembered lists live in local storage, by the owner's call
 - 2026-09-08 · Coming back to a project restores its place, from a page-lifetime map
+- 2026-09-08 · Tabs are dragged into order, and Main is not one of them
 
 ---
 
@@ -535,3 +536,50 @@ at the top. A reload starts at the top too, which option 4 would change in two
 lines. Nothing is written to storage, so no note text leaves memory. The one
 thing a future change must not break: the departure is judged by the address
 bar, so a new screen between the list and a note would have to be named there.
+
+---
+
+## 2026-09-08 — Tabs are dragged into order, and Main is not one of them
+
+### Context
+Rotem asked to drag the tabs on a project page into the order he wants. Every
+tab except the first is a row in the `tabs` table, so it has somewhere to keep a
+place. Main is not a row at all: it is the notes that are in no live tab, and
+only its NAME lives on the project. So the strip on screen is one list, and the
+data behind it is a list plus a special case.
+
+### Options
+1. Reorder the real tabs only. Main stays the first chip and is not draggable.
+2. Give the project a `main_tab_position` column, send Main through the order
+   route as a null or a magic id, and let it move like the others.
+3. Turn Main into a real row for every project, backfilled by a migration, so
+   the special case disappears and everything reorders uniformly.
+
+### Decision
+Option 1, mine, and it is the smallest change that answers the ask. One nullable
+`position` on `tabs`, a `PUT .../tabs/order` that writes the whole list in one
+batch, and a strip that rearranges under the mouse the way Home's tiles already
+do. Main is not draggable and nothing can be dropped in front of it.
+
+Option 3 is the honest fix and was rejected as far too large for the request: it
+rewrites what "Main" means across the notes query, the removal fallback, undo
+and every address that carries no `?tab=`, and it contradicts the 2026-09-06
+decision that Main is not a row.
+
+### Consequences
+The order is per project, saved, and it follows Rotem to every device. A tab
+made later lands at the end, because null sorts last, which keeps the new tab
+beside the plus that made it. Existing tabs, which all carry null, keep exactly
+the creation order they had.
+
+What it costs: the first chip cannot move. If Rotem wants Main movable, that is
+option 2 and it needs a column on `projects` plus a way to name Main inside an
+order that is otherwise a list of tab ids.
+
+Reordering is pointer-only, the same as Home's tiles and the note rows, so this
+adds a third place a keyboard cannot reach. Worth revisiting for all three at
+once, never for this one alone.
+
+The deploy rule this inherits: the remote migration runs before the Worker
+ships, or the tabs list answers 500 for every project, since the list query now
+names a column the live database does not have yet.
