@@ -127,7 +127,7 @@ export function TabStrip({
 	   scrolling under the sticky bar pass behind the tabs instead of showing
 	   through them. */
 	return (
-		<div className="bg-bg py-3">
+		<div className="bg-bg pt-5 pb-3">
 			<div
 				className="group flex flex-wrap items-center gap-1"
 				onDragOver={(event) => {

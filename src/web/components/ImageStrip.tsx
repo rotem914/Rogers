@@ -88,7 +88,13 @@ export function ImageStrip({
 	);
 }
 
-/** The picture at full size, over everything, until Escape or a click. */
+/** The picture at full size, over everything, until Escape or a click.
+ *
+ * `pointer-events-auto`: in a note row this sits inside a wrapper that switches
+ * pointer events off for everything under the covering link, and that is
+ * inherited, so without it a real click goes straight through the backdrop and
+ * the picture and nothing ever closes. A dispatched click still fires either
+ * way, which is why this hid behind a passing check. */
 function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 	useEffect(() => {
 		function onKey(event: KeyboardEvent) {
@@ -106,7 +112,13 @@ function Lightbox({ src, onClose }: { src: string; onClose: () => void }) {
 			role="dialog"
 			aria-label="Image"
 			onClick={onClose}
-			className="fixed inset-0 z-40 flex items-center justify-center bg-bg/90 p-14"
+			/* A right-click here belongs to the picture, not to whatever is behind
+			   it: in a note row this box sits inside the row, so the event bubbled
+			   up and opened the row's Pin and Archive menu underneath. Stopped, not
+			   prevented, so the browser's own menu still offers Save image as, the
+			   same bargain the project tile makes while its name is being typed. */
+			onContextMenu={(event) => event.stopPropagation()}
+			className="pointer-events-auto fixed inset-0 z-40 flex items-center justify-center bg-bg/90 p-14"
 		>
 			{/* Not draggable: a picture drags itself by default, so pressing on it and
 			    moving a hair starts a drag and the click that closes this never fires. */}

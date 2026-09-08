@@ -322,9 +322,19 @@ or to what that menu does, checks all of it:
    beside the picture: the note opens as it always did. Right-click the
    picture: the row's own Pin and Archive menu opens, not the modal.
 9. Close the modal three ways: Escape, a click on the dark background, and a
-   click on the picture itself. The third one is the one that breaks: a
-   picture drags itself by default, so without `draggable={false}` a press
-   that moves a hair starts a drag and no click ever fires.
+   click on the picture itself. Two things break the last two, and both have:
+   a picture drags itself by default, so without `draggable={false}` a press
+   that moves a hair starts a drag and no click ever fires; and the modal is
+   rendered inside the row, whose content sits under a covering link with
+   pointer events switched off, which is inherited, so without
+   `pointer-events-auto` on the modal a real click goes straight through it.
+   DRIVE ALL THREE WITH REAL CLICKS, never with a dispatched one. A dispatched
+   click ignores hit testing, so it closes a modal no mouse can reach, and that
+   is exactly how the second cause shipped past this check on 2026-09-08.
+10. Right-click ON the open modal: no menu of ours at all, so the browser's own
+   stays available and the picture can still be saved. The row's Pin and
+   Archive must NOT open behind it. Right-click the thumbnail in the row with
+   no modal open: Pin and Archive, the same as item 8.
 
 ## 10h. A project tile's own menu
 
