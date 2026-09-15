@@ -63,6 +63,17 @@ export function TabStrip({
 	const draggedRef = useRef<string | null>(null);
 	const droppedRef = useRef(false);
 
+	/* A dragged order outlives its drop, so the strip does not snap back while
+	   the refetch is out, and is let go once a different set of tabs arrives;
+	   Home and the note sections do the same. State only, during render: the
+	   ref is reseeded by the next drag before it is read. */
+	const ids = tabs.map((tab) => tab.id).join("\n");
+	const [seen, setSeen] = useState(ids);
+	if (seen !== ids) {
+		setSeen(ids);
+		if (dragging === null && order.length > 0) setOrder([]);
+	}
+
 	const shown = arrange(tabs, order);
 
 	function showOrder(next: string[]) {

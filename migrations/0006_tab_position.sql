@@ -1,4 +1,4 @@
--- Rogers, fourth migration: where a tab sits in its project's strip.
+-- Rogers, sixth migration: where a tab sits in its project's strip.
 --
 -- Additive, like every migration here. One nullable column, no default, and no
 -- existing row is read or rewritten.

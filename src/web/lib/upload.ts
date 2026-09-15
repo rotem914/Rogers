@@ -114,6 +114,30 @@ async function putThumbnail(key: string, small: Blob): Promise<void> {
 
 let backfilling = false;
 
+/* When the Worker last answered that nothing is missing. Answering costs it a
+   walk over every object in the bucket, so an empty answer is remembered here
+   for a day and the walk is not asked for again until then. A picture added
+   meanwhile makes its own copy at upload, so nothing is missed by waiting. */
+const DONE_KEY = "rogers.thumbs.done";
+const DONE_FOR_MS = 24 * 60 * 60 * 1000;
+
+function recentlyDone(): boolean {
+	try {
+		const at = Number(localStorage.getItem(DONE_KEY) ?? "0");
+		return Date.now() - at < DONE_FOR_MS;
+	} catch {
+		return false;
+	}
+}
+
+function markDone(): void {
+	try {
+		localStorage.setItem(DONE_KEY, String(Date.now()));
+	} catch {
+		/* No storage: the check simply runs again next time. */
+	}
+}
+
 /**
  * Make the small copies the pictures from before 2026-09-07 never had.
  *
@@ -121,14 +145,15 @@ let backfilling = false;
  * the first paint: asks the Worker which pictures have no copy, then for each
  * one downloads the original, draws the copy here and sends it, one picture
  * at a time. Anything that fails is left for the next visit, and once every
- * picture has its copy the Worker answers an empty list and this costs one
- * request.
+ * picture has its copy the Worker answers an empty list, which is remembered
+ * for a day so the question is not asked on every open.
  */
 export async function backfillThumbnails(): Promise<void> {
-	if (backfilling) return;
+	if (backfilling || recentlyDone()) return;
 	backfilling = true;
 	try {
 		const { keys } = await apiFetch<MissingThumbs>("/api/thumbs/missing");
+		if (keys.length === 0) markDone();
 		for (const key of keys) {
 			try {
 				/* The bytes themselves, not JSON, so this is the one read that does

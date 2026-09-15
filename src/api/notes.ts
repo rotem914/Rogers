@@ -266,9 +266,6 @@ async function tabIsLive(
 	return row !== null;
 }
 
-/* Re-exported so plan step 3.4 can build on the same mapping. */
-export { toNote };
-
 /* ------------------------------------------------------------------ one note
  *
  * A note by its own address. This is what the note page reads and what autosave
@@ -279,12 +276,24 @@ export const notes = new Hono<{ Bindings: Env }>();
 
 const ONE_SQL = `SELECT * FROM notes WHERE id = ?`;
 
+/**
+ * Is this note there to be read or written?
+ *
+ * Archived counts as absent, and so does a live note inside an archived
+ * project: the project routes promise its notes are out of reach until it
+ * comes back, and a note reachable by its own address would break that.
+ */
+async function noteIsLive(db: D1Database, row: NoteRow): Promise<boolean> {
+	if (row.archived_at !== null) return false;
+	return projectIsLive(db, row.project_id);
+}
+
 notes.get("/:id", async (c) => {
 	const row = await c.env.DB.prepare(ONE_SQL)
 		.bind(c.req.param("id"))
 		.first<NoteRow>();
 
-	if (row === null || row.archived_at !== null) {
+	if (row === null || !(await noteIsLive(c.env.DB, row))) {
 		return c.json<ApiErrorBody>({ error: "No such note." }, 404);
 	}
 	return c.json<Note>(toNote(row));
@@ -294,7 +303,7 @@ notes.patch("/:id", async (c) => {
 	const id = c.req.param("id");
 	const existing = await c.env.DB.prepare(ONE_SQL).bind(id).first<NoteRow>();
 
-	if (existing === null || existing.archived_at !== null) {
+	if (existing === null || !(await noteIsLive(c.env.DB, existing))) {
 		return c.json<ApiErrorBody>({ error: "No such note." }, 404);
 	}
 
@@ -392,7 +401,7 @@ notes.delete("/:id", async (c) => {
 	const id = c.req.param("id");
 	const existing = await c.env.DB.prepare(ONE_SQL).bind(id).first<NoteRow>();
 
-	if (existing === null) {
+	if (existing === null || !(await projectIsLive(c.env.DB, existing.project_id))) {
 		return c.json<ApiErrorBody>({ error: "No such note." }, 404);
 	}
 

@@ -72,6 +72,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-07 · The remembered lists live in local storage, by the owner's call
 - 2026-09-08 · Coming back to a project restores its place, from a page-lifetime map
 - 2026-09-08 · Tabs are dragged into order, and Main is not one of them
+- 2026-09-16 · A draft that could not become a note stays open, and keepalive is for pagehide only
 
 ---
 
@@ -624,3 +625,37 @@ Worth revisiting if the mark ever has to DO something, hide a row, cross it
 out, or sort it to the bottom. All three are list behaviour, and the moment one
 of them lands the row order stops being the only thing that decides what is on
 screen.
+
+---
+
+## 2026-09-16 — A draft that could not become a note stays open, and keepalive is for pagehide only
+
+### Context
+The 2026-09-16 code review found the composer discarding typed text on any
+click outside once its create request had failed, and every flush of a note
+going out keepalive, which the fetch spec caps at 64 KiB, so a long note failed
+on blur and on the back arrow. Both sit on invariant one.
+
+### Options
+1. Park the failed draft in session storage on close and let it go from the screen.
+2. Keep the composer open, red, and retry the create on every attempt to close.
+3. Keep keepalive on every flush and cap notes at 64 KB.
+4. keepalive only on pagehide, and only under the cap; park on pagehide as well.
+
+### Decision
+Options 2 and 4, Rotem's "FIX ALL" on the review. A draft with text and no
+note on the server never leaves the screen until the note exists; a parked
+draft that nobody knows to look for is a note lost more slowly. keepalive is
+reserved for the one moment the page is really going away, and the pagehide
+handler parks first, so a reload restores the text whether or not the request
+made it.
+
+### Consequences
+The composer can refuse to close: with the Worker unreachable it stays open
+with "Could not save" and every word in place, and closes the moment a create
+goes through. A pagehide parks text that the request may also have saved, so
+the next open of that note re-queues text the server already has; harmless,
+because it is the newest text by construction. What must not break: no flush
+other than pagehide may set keepalive, and the park on pagehide must run before
+the flush. Worth revisiting if a browser ever drops the 64 KiB cap, or if the
+composer gains a way to park a draft that a later visit is guaranteed to pick up.

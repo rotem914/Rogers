@@ -25,8 +25,8 @@ one Cloudflare Worker: Hono API + React/Vite SPA served as static assets · D1 +
 | Setting | Value |
 |---|---|
 | Project root | this repository, wherever this copy of it lives |
-| Runs locally at | `http://localhost:5173`, once plan step 1.1 lands |
-| Checks | `npm run check`, defined at plan step 1.1; nothing to run before that |
+| Runs locally at | `http://localhost:5173`, started by Rotem |
+| Checks | `npm run check`: typecheck, lint, build, and a dry-run deploy |
 
 ## Tree
 
@@ -63,8 +63,7 @@ Rogers/
 ```
 
 `desktop/` arrives with the plan step that creates it, and this
-tree is updated in the same change. `src/web` still holds the template's own page;
-Rogers screens arrive at plan step 1.3 and phase 4.
+tree is updated in the same change.
 
 ## Data
 
@@ -87,7 +86,7 @@ anything.
 | Schema | `migrations/*.sql` | The only way the database shape changes. Additive only: a migration never drops a column or rewrites a row. |
 | API | `src/api/*`, `wrangler.json` | The Worker. Every route lives under `/api`; `run_worker_first` sends those to the Worker before the assets. |
 | Web | `src/web/pages/*`, `src/web/components/*`, `index.html` | The screens. Any address that is not `/api/*` returns the app shell. |
-| Saving | `src/web/lib/autosave.ts` | The only code that sends a note save. One request in flight per note, later edits coalesced, answers never written back into the editor, unsaved text parked on dispose. Both the composer and the note page go through it; nothing else may call PATCH on a note. |
+| Saving | `src/web/lib/autosave.ts` | The only code that saves a note's text and pictures. One request in flight per note, later edits coalesced, answers never written back into the editor, unsaved text parked on dispose and on pagehide, keepalive only when the page is going away. Both the composer and the note page go through it; nothing else may PATCH a note's title, body or images. A row's pin, mark and archive PATCH the note from `NoteRow.tsx`, and touch none of those three fields. |
 | Platform | `src/web/platform/*` | Where the API lives, what an expired Access session looks like, and web versus Tauri. Every request goes through `api-client.ts`; no screen calls `fetch` itself. |
 | Look | `src/web/styles/tokens.css`, `src/web/index.css`, `src/web/styles/fonts/` | The palette and the base sheet. A raw hex anywhere else is a bug. The fonts are served by Rogers itself, never from Google; `OFL.txt` and `TRADEMARKS.txt` must stay beside them, since shipping the licence is the condition for using the typeface. |
 | Shared | `src/shared/*` | Types both sides import. One definition only; never a second copy under api or web. |

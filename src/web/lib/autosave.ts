@@ -25,11 +25,22 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
 /** How long typing has to pause before a save goes out. */
 const SETTLE_MS = 600;
 
+/**
+ * The most a keepalive request may carry. The fetch spec refuses a keepalive
+ * body past 64 KiB outright, so a bigger patch goes out as a plain request
+ * instead and relies on being parked rather than on outliving the page.
+ */
+const KEEPALIVE_LIMIT = 60 * 1024;
+
 const DRAFT_KEY = (noteId: string) => `note:${noteId}`;
 
 export class NoteSaver {
 	private pending: UpdateNoteBody = {};
+	/** The patch that is out right now, so a park can rescue it too. */
+	private sent: UpdateNoteBody | null = null;
 	private inFlight = false;
+	/** A page-leaving flush arrived mid-save: the follow-up goes out keepalive. */
+	private leaveAfter = false;
 	private timer: ReturnType<typeof setTimeout> | null = null;
 	private drained: (() => void)[] = [];
 	private stopped = false;
@@ -63,8 +74,13 @@ export class NoteSaver {
 	 *
 	 * Used on blur, on Close, and on the way back. If the save fails, the text
 	 * is parked so the caller can leave the page without losing it.
+	 *
+	 * `leaving` is for the page going away under the request, pagehide: the
+	 * save is sent keepalive so the browser finishes it after unload. Only
+	 * then, because keepalive caps the body at 64 KiB and a long note would
+	 * fail every blur and every back arrow with it.
 	 */
-	async flush(): Promise<boolean> {
+	async flush(leaving = false): Promise<boolean> {
 		if (this.timer !== null) {
 			clearTimeout(this.timer);
 			this.timer = null;
@@ -72,7 +88,7 @@ export class NoteSaver {
 		if (!this.hasUnsaved()) return true;
 
 		const done = new Promise<void>((resolve) => this.drained.push(resolve));
-		void this.send(true);
+		void this.send(leaving);
 		await done;
 
 		if (Object.keys(this.pending).length > 0) {
@@ -82,10 +98,16 @@ export class NoteSaver {
 		return true;
 	}
 
-	/** Park whatever has not been saved, for a reload the page cannot avoid. */
+	/**
+	 * Park whatever has not been confirmed saved, for a reload the page cannot
+	 * avoid. The patch out on the wire counts too: an unload cancels it, and a
+	 * rescue that parks only the queue behind it would lose exactly the text
+	 * typed just before the page went.
+	 */
 	park(): void {
-		if (Object.keys(this.pending).length === 0) return;
-		parkDraft(DRAFT_KEY(this.noteId), JSON.stringify(this.pending));
+		const unsaved = { ...this.sent, ...this.pending };
+		if (Object.keys(unsaved).length === 0) return;
+		parkDraft(DRAFT_KEY(this.noteId), JSON.stringify(unsaved));
 	}
 
 	/**
@@ -102,39 +124,52 @@ export class NoteSaver {
 		this.stopped = true;
 	}
 
-	private async send(final = false): Promise<void> {
-		if (this.inFlight) return;
+	private async send(leaving = false): Promise<void> {
+		if (this.inFlight) {
+			/* A page-leaving flush during a save: the save that follows it, with
+			   whatever was typed meanwhile, must go out keepalive as well. */
+			if (leaving) this.leaveAfter = true;
+			return;
+		}
 		if (Object.keys(this.pending).length === 0) {
 			this.settle();
 			return;
 		}
+		leaving = leaving || this.leaveAfter;
+		this.leaveAfter = false;
 
 		/* Take the pending patch off the queue before awaiting anything, so
 		   keystrokes that land during the request start a fresh patch instead of
 		   mutating the one being sent. */
 		const patch = this.pending;
 		this.pending = {};
+		this.sent = patch;
 		this.inFlight = true;
 		this.onStatus("saving");
 
 		try {
 			await this.ready;
+			const body = JSON.stringify(patch);
 			await apiFetch<Note>(`/api/notes/${this.noteId}`, {
 				method: "PATCH",
-				body: JSON.stringify(patch),
+				body,
 				/* A flush on the way out of the page must survive the page going
-				   away. keepalive lets the browser finish it after unload. */
-				keepalive: final,
+				   away. keepalive lets the browser finish it after unload, but
+				   refuses a body past its cap, so a long note is sent plain and
+				   trusts the park instead. */
+				keepalive: leaving && new TextEncoder().encode(body).byteLength <= KEEPALIVE_LIMIT,
 			});
+			this.sent = null;
 			this.inFlight = false;
 			if (Object.keys(this.pending).length > 0) {
 				/* Typing continued during the save: go again at once, no settle. */
-				void this.send(final);
+				void this.send(leaving);
 			} else {
 				this.onStatus("saved");
 				this.settle();
 			}
 		} catch {
+			this.sent = null;
 			this.inFlight = false;
 			/* Put the failed fields back under anything typed since. Newer text
 			   wins, which is the invariant seen from the failure side. */

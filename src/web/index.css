@@ -64,8 +64,9 @@ html {
 
 body {
 	margin: 0;
-	/* Google Sans, loaded from Google Fonts in index.html. The rest of the stack
-	   is what shows while it downloads, and if it never arrives. */
+	/* Google Sans, served by Rogers itself from the @font-face rules above. The
+	   rest of the stack is what shows while it downloads, and if it never
+	   arrives. */
 	font-family:
 		"Google Sans", ui-sans-serif, system-ui, "Segoe UI", Roboto,
 		"Helvetica Neue", Arial, "Noto Sans Hebrew", sans-serif;

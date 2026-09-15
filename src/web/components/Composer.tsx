@@ -12,15 +12,25 @@
 import { useCallback, useEffect, useImperativeHandle, useRef, useState, type Ref } from "react";
 import type { CreateNoteBody, Note } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
-import { onSessionExpired } from "../platform/session";
+import { onSessionExpired, parkDraft, takeParkedDraft } from "../platform/session";
 import { NoteSaver, type SaveStatus } from "../lib/autosave";
 import { UndoStack, undoShortcut } from "../lib/undo";
 import { ACCEPT_ATTRIBUTE, imageFiles, uploadImage } from "../lib/upload";
 import { AutoGrowTextarea } from "./AutoGrowTextarea";
 import { ImageStrip } from "./ImageStrip";
 
-/** What the page can ask the composer to do: the N shortcut opens it. */
-export type ComposerHandle = { open: () => void };
+/** What the page can ask the composer: the N shortcut opens it, and the page's
+ *  own Ctrl+Z stands aside while it is open. */
+export type ComposerHandle = { open: () => void; isOpen: () => boolean };
+
+/** The draft's own fields, the shape parked when there is no note to park under. */
+type Draft = { title: string; body: string; pinned: boolean; images: string[] };
+
+/* Where a draft that has no note yet is parked when the login expires. Keyed by
+   the list it was typed into, because after the reload the same list is what
+   comes back on screen, and its composer is the one that picks it up. */
+const draftKey = (projectId: string, tabId: string | null) =>
+	`composer:${projectId}:${tabId ?? ""}`;
 
 export function Composer({
 	ref,
@@ -36,7 +46,15 @@ export function Composer({
 	onClosed: () => void;
 }) {
 	const [open, setOpen] = useState(false);
-	useImperativeHandle(ref, () => ({ open: () => setOpen(true) }), []);
+	const openRef = useRef(false);
+	useEffect(() => {
+		openRef.current = open;
+	}, [open]);
+	useImperativeHandle(
+		ref,
+		() => ({ open: () => setOpen(true), isOpen: () => openRef.current }),
+		[],
+	);
 	const [title, setTitle] = useState("");
 	const [body, setBody] = useState("");
 	const [pinned, setPinned] = useState(false);
@@ -66,7 +84,11 @@ export function Composer({
 	const ensureCreated = useCallback(async (): Promise<NoteSaver | null> => {
 		if (saverRef.current !== null) return saverRef.current;
 		if (creatingRef.current !== null) {
-			await creatingRef.current;
+			try {
+				await creatingRef.current;
+			} catch {
+				/* The first caller reports it; this one only waited. */
+			}
 			return saverRef.current;
 		}
 
@@ -157,21 +179,28 @@ export function Composer({
 
 	/* Pictures: upload each, append its key, and save through the same path as
 	   typing. The picker, a paste and a drop all end up here. */
-	async function addFiles(files: File[]) {
+	const uploads = useRef(new Set<Promise<void>>());
+	function addFiles(files: File[]) {
 		if (files.length === 0) return;
 		setOpen(true);
-		setUploadError(null);
-		for (const file of files) {
-			setUploading((n) => n + 1);
-			try {
-				const key = await uploadImage(file);
-				change({ images: [...latest.current.images, key] });
-			} catch (cause) {
-				setUploadError(cause instanceof Error ? cause.message : "Could not add the image.");
-			} finally {
-				setUploading((n) => n - 1);
+		/* Every batch under way is kept, so Close can wait for it: a key that
+		   arrived after the reset would open a second, picture-only note. */
+		const batch = (async () => {
+			setUploadError(null);
+			for (const file of files) {
+				setUploading((n) => n + 1);
+				try {
+					const key = await uploadImage(file);
+					change({ images: [...latest.current.images, key] });
+				} catch (cause) {
+					setUploadError(cause instanceof Error ? cause.message : "Could not add the image.");
+				} finally {
+					setUploading((n) => n - 1);
+				}
 			}
-		}
+		})();
+		uploads.current.add(batch);
+		void batch.finally(() => uploads.current.delete(batch));
 	}
 
 	const reset = useCallback(() => {
@@ -188,19 +217,31 @@ export function Composer({
 		setDragging(false);
 		setStatus("idle");
 		setOpen(false);
-	}, []);
+	}, [undo]);
 
-	/* Close: save what is pending, discard an empty draft, tell the list. */
+	/* Close: let the pictures land, save what is pending, discard an empty
+	   draft, tell the list.
+
+	   A draft with text and no note on the server is never thrown away. That is
+	   the case when the create request failed: Close tries it once more, and if
+	   the note still cannot be made the composer stays open, red, with every
+	   word where it was. A click on the page behind it must not be the click
+	   that loses a note. */
 	const close = useCallback(async () => {
-		if (creatingRef.current !== null) await creatingRef.current;
-		const saver = saverRef.current;
+		await Promise.all(uploads.current);
+		const empty = () =>
+			latest.current.title.trim() === "" &&
+			latest.current.body.trim() === "" &&
+			latest.current.images.length === 0;
+		let saver = saverRef.current;
+		if (saver === null && !empty()) saver = await ensureCreated();
+		if (saver === null && !empty()) {
+			setStatus("error");
+			return;
+		}
 		if (saver !== null) {
 			await saver.flush();
-			const empty =
-				latest.current.title.trim() === "" &&
-				latest.current.body.trim() === "" &&
-				latest.current.images.length === 0;
-			if (empty) {
+			if (empty()) {
 				try {
 					await apiFetch<Note>(`/api/notes/${idRef.current}`, { method: "DELETE" });
 				} catch {
@@ -210,7 +251,7 @@ export function Composer({
 		}
 		reset();
 		onClosed();
-	}, [onClosed, reset]);
+	}, [ensureCreated, onClosed, reset]);
 
 	/* Click outside, and Escape, both close. Registered only while open. */
 	useEffect(() => {
@@ -234,10 +275,53 @@ export function Composer({
 			document.removeEventListener("pointerdown", onPointerDown);
 			document.removeEventListener("keydown", onKey);
 		};
-	}, [open, close]);
+		// No dependency list: `travel` is a fresh closure every render, so the
+		// listeners re-register on each one, the same bargain the note page makes.
+	});
 
-	/* If the login expires mid-sentence, park the text before the reload. */
-	useEffect(() => onSessionExpired(() => saverRef.current?.park()), []);
+	/* If the login expires mid-sentence, park the text before the reload. With a
+	   note on the server it is parked under that note; without one, the draft
+	   itself is parked under this list, and picked up below after the reload. */
+	useEffect(
+		() =>
+			onSessionExpired(() => {
+				const saver = saverRef.current;
+				if (saver !== null) {
+					saver.park();
+					return;
+				}
+				const draft = latest.current;
+				if (draft.title === "" && draft.body === "" && draft.images.length === 0) return;
+				parkDraft(draftKey(projectId, tabId), JSON.stringify(draft));
+			}),
+		[projectId, tabId],
+	);
+
+	/* A draft parked by an expired login comes back here, on the list it was
+	   typed into: it goes on screen, opens the composer, and becomes a note the
+	   way a first keystroke does. */
+	useEffect(() => {
+		const parked = takeParkedDraft(draftKey(projectId, tabId));
+		if (parked === null) return;
+		try {
+			const draft = JSON.parse(parked) as Partial<Draft>;
+			const patch: Partial<Draft> = {};
+			if (typeof draft.title === "string") patch.title = draft.title;
+			if (typeof draft.body === "string") patch.body = draft.body;
+			if (typeof draft.pinned === "boolean") patch.pinned = draft.pinned;
+			if (Array.isArray(draft.images)) {
+				patch.images = draft.images.filter((key): key is string => typeof key === "string");
+			}
+			setOpen(true);
+			change(patch);
+		} catch {
+			/* Unreadable parked text is not restorable. */
+		}
+		// Runs when the list this composer belongs to is known, and again if the
+		// tab arrives a beat later; a parked draft is taken exactly once, so the
+		// repeat costs nothing. `change` is deliberately not a dependency.
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [projectId, tabId]);
 
 	/* Opening puts the caret in the title. */
 	useEffect(() => {

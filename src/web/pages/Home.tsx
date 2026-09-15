@@ -33,6 +33,17 @@ export function Home() {
 	const droppedRef = useRef(false);
 	const [orderFailed, setOrderFailed] = useState(false);
 
+	/* A dragged order outlives its drop, so the grid does not snap back while
+	   the refetch is out, and is let go once the list holds a different set of
+	   tiles; the project page's note sections do the same. State only, during
+	   render: the ref is reseeded by the next drag before it is read. */
+	const ids = (data ?? []).map((project) => project.id).join("\n");
+	const [seen, setSeen] = useState(ids);
+	if (seen !== ids) {
+		setSeen(ids);
+		if (dragging === null && order.length > 0) setOrder([]);
+	}
+
 	const projects = arrange(data ?? [], order);
 
 	function showOrder(next: string[]) {

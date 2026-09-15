@@ -392,6 +392,32 @@ never on one of Rotem's:
 10. At 375 wide the box holds its width and a long title wraps beside it, never
    under it, with no horizontal overflow.
 
+## 10j. Every way out of an editor keeps the text
+
+The composer and the note page each have several ways out: a click outside,
+Escape, Enter in the title, the back arrow, a reload, a closed tab, an expired
+login. Any change to the saver, the composer or the note page walks all of
+them, on a throwaway project of your own, never on one of Rotem's. Failures are
+simulated from the browser tool by wrapping `window.fetch`, never by stopping
+Rotem's dev server (rule 16):
+
+1. Make the create request fail, type in the composer, click the page: the
+   composer stays open, red, with the text. Let requests through, click the
+   page again: the note is in the list. The same with Escape and with Enter.
+2. Paste a note over 64 KB on the note page, click outside the field: the
+   status reads Saved and the network tab shows a 200 PATCH, not a request that
+   never left. Press back and reopen: the text is there.
+3. Type on the note page and, before Saving shows, dispatch `pagehide`: the
+   tab's session storage holds `rogers.draft.note:<id>` with the text. Type,
+   wait for Saving, type more, dispatch it again: the parked patch carries the
+   newer text.
+4. Delay the upload request, drop a picture, press back at once: the page
+   waits, then leaves; reopen the note: the picture is in it. In the composer,
+   drop a picture and click outside: one note in the list, with the picture,
+   never a second picture-only one.
+5. Add a tab, open the composer, type, click its pin, press Ctrl+Z: only the
+   text goes back; the tab is still there.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

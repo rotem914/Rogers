@@ -171,11 +171,25 @@ one is worth trusting. Group the rows under the dimensions above.
 
 ### Data & persistence integrity
 
-> *Example row — delete this one when you write your first real one.*
->
-> - 🔴 **Every write is atomic** — a save writes to a temporary file and then swaps
->   it into place. A direct in-place write can leave a half-written file if the
->   process dies mid-save. (Source: `project-os/Decisions.md`, the storage entry.)
+- 🔴 **Every way out of an editor keeps the text.** A click outside, Escape,
+  Enter, the back arrow, pagehide and an expiring login each either send, park
+  or refuse to leave; a draft with no note on the server yet is the case that
+  slipped. Search: `reset(`, `close(`, `goBack(`, `pagehide`. (Source:
+  `notes/2026-09-16-code-review.md`, T1 and T3; QA 10j.)
+- 🔴 **keepalive only when the page is going away, and under 64 KiB.** The
+  fetch spec refuses a bigger keepalive body outright, so a blur or a back
+  arrow that used it would fail every long note. Search: `keepalive`. (Source:
+  the same document, T2.)
+- 🟠 **Leaving waits for the pictures.** An upload that lands after the editor
+  is gone is a picture in no note, or a second note. Search: `uploads.current`.
+  (Source: the same document, T4.)
+
+### State & concurrency
+
+- 🟡 **A dragged order is let go when the ids change, never on the drop.**
+  Clearing on the drop snaps the list back before the refetch; keeping it past
+  a changed list shows an order the Worker never held. Search: `seen !== ids`.
+  (Source: the same document, T6.)
 
 ## Bootstrap recipe — fill the list from this project's own memory
 

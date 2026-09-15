@@ -322,11 +322,13 @@ export function Project() {
 
 	/* Ctrl+Z and Ctrl+Shift+Z step through the tab actions, but only when the
 	   keystroke belongs to the page itself: a field carries its own undo, and
-	   the composer keeps its own stack while it is open. */
+	   the composer keeps its own stack while it is open, wherever the focus
+	   sits inside it, so the page asks before stepping. */
 	useEffect(() => {
 		function onKey(event: KeyboardEvent) {
 			const step = undoShortcut(event);
 			if (step === null || id === undefined) return;
+			if (composer.current?.isOpen()) return;
 			const target = event.target as HTMLElement | null;
 			const typing =
 				target !== null &&
@@ -501,12 +503,26 @@ function Section({
 	const draggedRef = useRef<string | null>(null);
 	const droppedRef = useRef(false);
 
-	const rows = arrange(notes, order);
-
 	function showOrder(next: string[]) {
 		orderRef.current = next;
 		setOrder(next);
 	}
+
+	/* A dragged order outlives its drop on purpose, so the rows do not snap back
+	   to the old order while the refetch is out. It is let go the moment the
+	   list holds a different set of rows: a row pinned and unpinned, say, which
+	   the Worker now puts at the top and the stale order would put back where
+	   it was. Set during render, the same as the tab switch above, because the
+	   frame that shows the new rows must not show them in the old order. */
+	const ids = notes.map((note) => note.id).join("\n");
+	const [seen, setSeen] = useState(ids);
+	if (seen !== ids) {
+		setSeen(ids);
+		/* State only: the ref is reseeded by the next drag before it is read. */
+		if (dragging === null && order.length > 0) setOrder([]);
+	}
+
+	const rows = arrange(notes, order);
 
 	function startDrag(event: DragEvent<HTMLLIElement>, id: string) {
 		draggedRef.current = id;

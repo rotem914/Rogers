@@ -5,7 +5,7 @@
  * path changes, and it exposes the three states a screen has to render. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiFetch } from "../platform/api-client";
+import { ApiError, apiFetch } from "../platform/api-client";
 
 export type ApiState<T> = {
 	data: T | null;
@@ -52,13 +52,36 @@ function readStored(): Map<string, unknown> {
 	}
 }
 
-function store(path: string, answer: unknown): void {
-	remembered.set(path, answer);
+/* How many lists are kept. A path is moved to the end each time it answers, so
+   what falls off the front is the list visited longest ago; without a ceiling
+   every project and tab ever opened would stay on the machine until the storage
+   quota refused the next write, silently, and remembering would stop for good. */
+const REMEMBER_LIMIT = 40;
+
+function persist(): void {
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(Object.fromEntries(remembered)));
 	} catch {
 		/* Full or forbidden storage costs the next reload one round trip, no more. */
 	}
+}
+
+function store(path: string, answer: unknown): void {
+	remembered.delete(path);
+	remembered.set(path, answer);
+	while (remembered.size > REMEMBER_LIMIT) {
+		const oldest = remembered.keys().next().value;
+		if (oldest === undefined) break;
+		remembered.delete(oldest);
+	}
+	persist();
+}
+
+/* A path that answered 404 is gone, an archived project or a removed tab, and
+   its remembered list must not paint again on the next visit to that address. */
+function forget(path: string): void {
+	if (!remembered.delete(path)) return;
+	persist();
 }
 
 function recall<T>(path: string | null, remember: boolean): T | null {
@@ -130,11 +153,16 @@ export function useApi<T>(path: string | null, options: ApiOptions = {}): ApiSta
 			})
 			.catch((cause: unknown) => {
 				if (run !== runRef.current) return;
+				if (cause instanceof ApiError && cause.status === 404) forget(path);
 				setError(cause instanceof Error ? cause.message : "Something broke.");
 				setLoading(false);
 			});
 	}, [path, remember]);
 
+	/* The synchronous state writes in `load` are the remembered answer going on
+	   screen before the fetch, one render, on purpose: an effect that only set
+	   loading and waited would paint the screen blank for a frame first. */
+	// eslint-disable-next-line react-hooks/set-state-in-effect
 	useEffect(load, [load]);
 
 	return { data, loading, error, refetch: load };

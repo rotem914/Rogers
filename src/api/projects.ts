@@ -3,8 +3,8 @@
  * Nothing here deletes a row. Removing a project sets archived_at, so a
  * mis-click is recoverable, which is a project invariant.
  *
- * The systematic input checking arrives at plan step 3.5. The guards below are
- * only what these endpoints need to not corrupt anything. */
+ * Every body is checked before it is written: a bad field answers 400, a
+ * missing row 404, and nothing reaches the database unread. */
 
 import { Hono } from "hono";
 import type {

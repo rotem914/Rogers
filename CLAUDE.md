@@ -31,7 +31,7 @@ reading time.
 | Project root | this repository, wherever this copy of it lives |
 | Local app | `http://localhost:5173`, started by Rotem |
 | Live app | `https://rogers.rotem-e.com`, deployed with `npm run deploy` |
-| Checks | `npm run check`, defined at plan step 1.1 as typecheck plus build; nothing to run before that |
+| Checks | `npm run check`: typecheck, lint, build, and a dry-run deploy; lint joined it on 2026-09-16 |
 
 ## Read these before you work
 

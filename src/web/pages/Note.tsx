@@ -114,20 +114,28 @@ function Editor({ note }: { note: NoteType }) {
 		change(patch, false);
 	}
 
-	/* Pictures: upload each, append its key, save through the same path as typing. */
-	async function addFiles(files: File[]) {
-		setUploadError(null);
-		for (const file of files) {
-			setUploading((n) => n + 1);
-			try {
-				const key = await uploadImage(file);
-				change({ images: [...latest.current.images, key] });
-			} catch (cause) {
-				setUploadError(cause instanceof Error ? cause.message : "Could not add the image.");
-			} finally {
-				setUploading((n) => n - 1);
+	/* Pictures: upload each, append its key, save through the same path as typing.
+	   Every batch under way is kept, so leaving the page can wait for it: a key
+	   that arrived after the editor was gone would be a picture in no note. */
+	const uploads = useRef(new Set<Promise<void>>());
+	function addFiles(files: File[]) {
+		const batch = (async () => {
+			setUploadError(null);
+			for (const file of files) {
+				setUploading((n) => n + 1);
+				try {
+					const key = await uploadImage(file);
+					change({ images: [...latest.current.images, key] });
+				} catch (cause) {
+					setUploadError(cause instanceof Error ? cause.message : "Could not add the image.");
+				} finally {
+					setUploading((n) => n - 1);
+				}
 			}
-		}
+		})();
+		uploads.current.add(batch);
+		void batch.finally(() => uploads.current.delete(batch));
+		return batch;
 	}
 
 	const flush = useCallback(() => saver.current?.flush(), []);
@@ -166,8 +174,9 @@ function Editor({ note }: { note: NoteType }) {
 		return () => document.removeEventListener("keydown", onKey);
 	});
 
-	/* Back: save first, discard an empty note, then go. */
+	/* Back: let the pictures land, save, discard an empty note, then go. */
 	async function goBack() {
+		await Promise.all(uploads.current);
 		await flush();
 		const empty =
 			latest.current.title.trim() === "" &&
@@ -224,7 +233,13 @@ function Editor({ note }: { note: NoteType }) {
 			}
 		}
 
-		const onHide = () => void current.flush();
+		/* Park first, then send: a reload or a navigation away brings the
+		   parked text back, and the keepalive send is for a tab that closes,
+		   where nothing survives but the request itself. */
+		const onHide = () => {
+			current.park();
+			void current.flush(true);
+		};
 		window.addEventListener("pagehide", onHide);
 		const release = onSessionExpired(() => current.park());
 		return () => {
@@ -233,7 +248,7 @@ function Editor({ note }: { note: NoteType }) {
 			current.dispose();
 			if (saver.current === current) saver.current = null;
 		};
-	}, [note.id]);
+	}, [note.id, undo]);
 
 	return (
 		<>
