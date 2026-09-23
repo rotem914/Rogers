@@ -418,6 +418,27 @@ Rotem's dev server (rule 16):
 5. Add a tab, open the composer, type, click its pin, press Ctrl+Z: only the
    text goes back; the tab is still there.
 
+## 10k. Archiving a tab with its notes
+
+A tab's right-click has Archive between the checklist item and Remove. Archive
+puts the tab away with its notes; Remove drops them into Main. Run it on a
+throwaway project with two tabs, a note in Main, notes in each tab, and one
+tab note archived on its own beforehand; archive the project at the end:
+
+1. Right-click a tab: Add checklist, Archive, Remove, in that order.
+2. Archive the open tab: the page lands on Main, the tab leaves the strip,
+   Main does NOT gain its notes, each of its notes answers 404 by its own
+   address, and Home's count drops by the notes it took.
+3. Ctrl+Z with a real key: the tab is back in its old place with its notes,
+   and the note archived beforehand is still archived. Ctrl+Shift+Z archives
+   it again. Reload: it stays archived.
+4. Remove the other tab: its notes land in Main as before. Ctrl+Z brings it
+   back with them, and the archived tab's notes stay away.
+5. Archive a tab that is not the open one, and the last tab: the list on
+   screen does not change, and the strip goes when no tab is left.
+6. Make the archive request fail by wrapping `window.fetch`: the toast reads
+   "Could not archive the tab." and the tab and its notes stay.
+
 ## 11. Prove a tool is missing before you claim it is
 
 In many setups, tools are not loaded until something asks for them. They are invisible by

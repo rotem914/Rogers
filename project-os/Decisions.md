@@ -73,6 +73,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-08 · Coming back to a project restores its place, from a page-lifetime map
 - 2026-09-08 · Tabs are dragged into order, and Main is not one of them
 - 2026-09-16 · A draft that could not become a note stays open, and keepalive is for pagehide only
+- 2026-09-23 · Archive takes a tab's notes with it, stamped with the tab's own time
 
 ---
 
@@ -659,3 +660,41 @@ because it is the newest text by construction. What must not break: no flush
 other than pagehide may set keepalive, and the park on pagehide must run before
 the flush. Worth revisiting if a browser ever drops the 64 KiB cap, or if the
 composer gains a way to park a draft that a later visit is guaranteed to pick up.
+
+---
+
+## 2026-09-23 - Archive takes a tab's notes with it, stamped with the tab's own time
+
+### Context
+Rotem asked to archive a tab with everything in it, kept and never deleted.
+A tab could only be removed, which archives the tab row and lets its notes
+fall into Main; the 2026-09-06 entry rejected archiving the notes behind that
+button. He chose to keep Remove as it is and add Archive beside it, with no
+Archive screen, the same as archived notes and projects today.
+
+### Options
+1. A flag on the tab row that hides its notes while the tab is archived: a
+   migration, plus Main's list, Home's note count and a note's own address
+   each learning to read the flag.
+2. Archive the tab's live notes in the same write, with the tab's exact
+   timestamp, and have a restore clear the notes carrying that timestamp.
+3. Replace Remove with Archive.
+
+### Decision
+Option 2, taken by the assistant; keeping both items and having no screen are
+Rotem's calls. `DELETE /api/projects/:id/tabs/:tab?notes=archive` archives the
+tab and its live notes in one batch with one timestamp. `archived: false` on
+the tab clears its stamp and, in the same batch, every note of that tab with
+the same stamp. No schema change, and every place that already hides an
+archived note hides these without being touched.
+
+### Consequences
+The timestamp is the link between a tab and the notes it took along. A note
+archived on its own before keeps its older stamp and stays archived when the
+tab comes back. A removed tab carries no such notes, so restoring it changes
+no note. What must not break: nothing else may write a tab's archive stamp
+onto notes, and a bulk archive of notes must never reuse one. Ctrl+Z on the
+page is the only way back from the screen; after leaving the page, a restore
+is a database edit on request. Revisit when an Archive screen arrives, which
+would list these notes as ordinary archived notes unless it groups them by
+their tab's stamp.

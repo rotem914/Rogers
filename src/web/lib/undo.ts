@@ -96,6 +96,8 @@ export function undoShortcut(event: KeyboardEvent): "undo" | "redo" | null {
 export type TabAction =
 	| { kind: "add"; id: string }
 	| { kind: "remove"; id: string }
+	/** Like a remove, but the tab's notes went with it, and come back with it. */
+	| { kind: "archive"; id: string }
 	/** A null id is the first tab, which has no row and is renamed on the project. */
 	| { kind: "rename"; id: string | null; from: string; to: string };
 

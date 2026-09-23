@@ -4,7 +4,9 @@
  * always been in, so a project answers an empty list here until the first tab
  * is added, and the page shows no tabs at all. Removing a tab archives it; its
  * notes keep pointing at it and the list query shows them in Main again, so a
- * mis-click never puts a note out of reach. */
+ * mis-click never puts a note out of reach. Archiving a tab is the other way to
+ * put one away: its notes are archived with it, and restoring the tab brings
+ * them back. Nothing is ever deleted either way. */
 
 import { Hono } from "hono";
 import type {
@@ -175,6 +177,9 @@ projectTabs.patch("/:id", async (c) => {
 	   restore rename it back to something older. */
 	const assignments: string[] = [];
 	const values: unknown[] = [];
+	/* The stamp a restore clears, which is also the stamp an Archive put on the
+	   tab's notes. */
+	let restoredFrom: string | null = null;
 
 	if (body !== null && "name" in body) {
 		const name = typeof body.name === "string" ? body.name.trim() : "";
@@ -194,8 +199,10 @@ projectTabs.patch("/:id", async (c) => {
 			assignments.push("archived_at = ?");
 			values.push(new Date().toISOString());
 		} else if (!body.archived && existing.archived_at !== null) {
-			/* The notes were never rewritten, so they come back with it. */
+			/* A removed tab's notes were never rewritten, so they come back with
+			   it; an archived tab's notes are brought back below. */
 			assignments.push("archived_at = NULL");
+			restoredFrom = existing.archived_at;
 		}
 	}
 
@@ -219,9 +226,24 @@ projectTabs.patch("/:id", async (c) => {
 	assignments.push("updated_at = ?");
 	values.push(now);
 
-	await c.env.DB.prepare(`UPDATE tabs SET ${assignments.join(", ")} WHERE id = ?`)
-		.bind(...values, id)
-		.run();
+	const update = c.env.DB.prepare(
+		`UPDATE tabs SET ${assignments.join(", ")} WHERE id = ?`,
+	).bind(...values, id);
+
+	/* Restoring also clears the notes that carry the tab's own stamp, which are
+	   exactly the ones its Archive took along. A removed tab has none, so this
+	   changes nothing for it. One batch, so the tab never comes back empty. */
+	if (restoredFrom !== null) {
+		await c.env.DB.batch([
+			update,
+			c.env.DB.prepare(
+				`UPDATE notes SET archived_at = NULL, updated_at = ?
+				 WHERE tab_id = ? AND project_id = ? AND archived_at = ?`,
+			).bind(now, id, projectId, restoredFrom),
+		]);
+	} else {
+		await update.run();
+	}
 
 	return c.json<Tab>(toTab(await rereadTab(c.env.DB, id)));
 });
@@ -247,11 +269,28 @@ projectTabs.delete("/:id", async (c) => {
 	}
 
 	const now = new Date().toISOString();
-	await c.env.DB.prepare(
+	const archiveTab = c.env.DB.prepare(
 		`UPDATE tabs SET archived_at = ?, updated_at = ? WHERE id = ?`,
-	)
-		.bind(now, now, id)
-		.run();
+	).bind(now, now, id);
+
+	/* `?notes=archive` is Archive rather than Remove: the tab's live notes are
+	   archived with it, stamped with the tab's own timestamp, so they leave
+	   Main's list, Home's count and their own addresses exactly as an archived
+	   note does. One batch, so the tab never goes without its notes. Notes that
+	   were archived before keep their older stamp and stay archived when the tab
+	   comes back. */
+	if (c.req.query("notes") === "archive") {
+		await c.env.DB.batch([
+			archiveTab,
+			c.env.DB.prepare(
+				`UPDATE notes SET archived_at = ?, updated_at = ?
+				 WHERE tab_id = ? AND project_id = ? AND archived_at IS NULL`,
+			).bind(now, now, id, projectId),
+		]);
+		return c.json<Tab>(toTab(await rereadTab(c.env.DB, id)));
+	}
+
+	await archiveTab.run();
 
 	/* The notes keep their tab_id on purpose. Nothing is rewritten, so clearing
 	   archived_at on this row brings the tab back with every note still in it.

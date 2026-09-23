@@ -160,6 +160,14 @@ export function Project() {
 		await apiFetch<Tab>(`/api/projects/${id}/tabs/${target}`, { method: "DELETE" });
 	}
 
+	/* The same, but the tab's notes are archived with it instead of falling
+	   into Main. */
+	async function archiveTabWithNotes(target: string) {
+		await apiFetch<Tab>(`/api/projects/${id}/tabs/${target}?notes=archive`, {
+			method: "DELETE",
+		});
+	}
+
 	/* The Worker has no "unremove": a removed tab is restored by clearing the
 	   timestamp that removed it, which brings back every note that was in it,
 	   because removing never rewrote one. */
@@ -245,6 +253,20 @@ export function Project() {
 		else notes.refetch();
 	}
 
+	/* Archiving puts the tab away with its notes, so no other list changes. */
+	async function archiveTabAndNotes(archivedId: string) {
+		setTabFailed(null);
+		try {
+			await archiveTabWithNotes(archivedId);
+		} catch {
+			setTabFailed("Could not archive the tab.");
+			return;
+		}
+		tabHistory.record({ kind: "archive", id: archivedId });
+		tabs.refetch();
+		if (archivedId === tabId) setSearchParams({}, { replace: true });
+	}
+
 	/* The one item on a tab's right-click menu that reads "Add checklist" or
 	   "Remove checklist", depending on which way the tab's own switch is set.
 	   The marks live on the notes and are never touched from here, so taking a
@@ -301,7 +323,8 @@ export function Project() {
 				if (action.id === null) await setMainName(name);
 				else await setTabName(action.id, name);
 			} else if (removing) {
-				await archiveTab(action.id);
+				if (action.kind === "archive") await archiveTabWithNotes(action.id);
+				else await archiveTab(action.id);
 			} else {
 				await restoreTab(action.id);
 			}
@@ -406,6 +429,7 @@ export function Project() {
 						onAdd={() => void addTab()}
 						onRename={renameTab}
 						onRemove={(removedId) => void removeTab(removedId)}
+						onArchive={(archivedId) => void archiveTabAndNotes(archivedId)}
 						onToggleChecklist={(target) => void toggleChecklist(target)}
 						onReorder={reorderTabs}
 					/>

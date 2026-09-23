@@ -34,6 +34,7 @@ export function TabStrip({
 	onAdd,
 	onRename,
 	onRemove,
+	onArchive,
 	onToggleChecklist,
 	onReorder,
 }: {
@@ -48,6 +49,8 @@ export function TabStrip({
 	 *  saved, so the field can say so where it sits. */
 	onRename: (id: string | null, name: string) => Promise<void>;
 	onRemove: (id: string) => void;
+	/** Puts the tab away with its notes, where Remove drops them into Main. */
+	onArchive: (id: string) => void;
 	/** Turns that tab's checkbox column on, or off again. Main has no menu. */
 	onToggleChecklist: (id: string) => void;
 	/** The tabs after Main, in their new order. Rejects when it was not saved,
@@ -170,6 +173,7 @@ export function TabStrip({
 									active={activeId === tab.id}
 									onRename={(name) => onRename(tab.id, name)}
 									onRemove={() => onRemove(tab.id)}
+									onArchive={() => onArchive(tab.id)}
 									checklist={tab.checklist}
 									onToggleChecklist={() => onToggleChecklist(tab.id)}
 								/>
@@ -214,6 +218,7 @@ function TabChip({
 	active,
 	onRename,
 	onRemove,
+	onArchive,
 	checklist = false,
 	onToggleChecklist,
 }: {
@@ -223,6 +228,8 @@ function TabChip({
 	onRename?: (name: string) => Promise<void>;
 	/** Left out on Main, which cannot be removed. */
 	onRemove?: () => void;
+	/** Left out on Main too, which cannot be archived. */
+	onArchive?: () => void;
 	/** Whether this tab already has one, which is what the item says. */
 	checklist?: boolean;
 	/** Left out on Main too: the menu itself only exists on a real tab. */
@@ -360,6 +367,19 @@ function TabChip({
 							className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-text hover:bg-surface-hover"
 						>
 							{checklist ? "Remove checklist" : "Add checklist"}
+						</button>
+					)}
+					{onArchive !== undefined && (
+						<button
+							type="button"
+							role="menuitem"
+							onClick={() => {
+								setMenuOpen(false);
+								onArchive();
+							}}
+							className="block w-full cursor-pointer px-3 py-2 text-left text-sm text-danger hover:bg-surface-hover"
+						>
+							Archive
 						</button>
 					)}
 					<button

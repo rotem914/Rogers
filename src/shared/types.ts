@@ -129,7 +129,7 @@ export type CreateTabBody = {
  * A rename, or a removal taken back.
  *
  * Main has no row, so it cannot be renamed. `archived: false` is how undo
- * brings a removed tab back, with every note that was in it.
+ * brings a removed or archived tab back, with every note that was in it.
  */
 export type UpdateTabBody = {
 	name?: string;
