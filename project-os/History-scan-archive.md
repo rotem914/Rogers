@@ -72,3 +72,4 @@ Moved here verbatim by project-os/rotate-history.ps1. Movement only: rows are ne
 | 2026-09-06 | design | **The page ground is #111217, everywhere the app paints a ground.** The token, both copies in the page shell, the installed app's splash and the offline page all moved together, so the first frame and the launch screen are the same dark as the app. |
 | 2026-09-06 | design | **Every card is #21222C, and hovers at #252632.** One token pair carries the project tile, the note row, the composer open and closed, and the open tab, so they all moved together. |
 | 2026-09-06 | design | **Home's new-project tile draws the same plus the tabs use, inside a solid 2px edge.** The typed plus character is gone, so one drawn shape now means add in both places. Hovering it fills the tile instead of lighting its edge, over the same 144ms the other cards use. |
+| 2026-09-06 | deploy | **The logo and the taller bar are live.** Version `84d57745`, no schema involved. |

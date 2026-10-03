@@ -98,7 +98,11 @@ function Find-SectionEnd($lines, $mask, $startIdx) {
 # The archive is organised BY SECTION, so one file can hold several rotated
 # tails (Mistakes has Promoted and Retired). A section is scaffolded on first
 # use with the same table head the rows were written under, then appended to.
-# Dedup is on the block's first non-empty line, so re-running never duplicates.
+# Dedup is on the whole block (every non-blank line, trimmed), so re-running
+# never duplicates. A table row is one line, so rows dedup as before; a
+# decision is known by its whole text, not its heading, so two decisions with
+# the same date and title are both kept (2026-09-26: one used to vanish).
+function Get-BlockKey($block) { return (@($block | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne '' }) -join "`n") }
 # ---------------------------------------------------------------------------
 function Write-ArchiveSection($archPath, $liveName, $sectionName, $headLines, $payload, $eol, $enc, $dry) {
     $lines = New-Object System.Collections.Generic.List[string]
@@ -119,6 +123,11 @@ function Write-ArchiveSection($archPath, $liveName, $sectionName, $headLines, $p
     # lands at ITS tail rather than at the end of the whole file.
     $arr    = $lines.ToArray()
     $mask   = Get-FenceMask $arr
+    for ($i = 0; $i -lt $arr.Count; $i++) {
+        if ($mask[$i] -or $arr[$i] -notmatch '^##\s+\d{4}-\d{2}-\d{2}\b') { continue }
+        $end = Find-SectionEnd $arr $mask $i
+        [void]$existing.Add((Get-BlockKey $arr[$i..($end - 1)]))
+    }
     $secIdx = Find-Section $arr $mask ('## ' + $sectionName)
     if ($secIdx -lt 0) {
         if ($lines.Count -gt 0 -and $lines[$lines.Count - 1].Trim() -ne '') { $lines.Add('') | Out-Null }
@@ -134,12 +143,11 @@ function Write-ArchiveSection($archPath, $liveName, $sectionName, $headLines, $p
     $added = 0; $dupes = 0
     $toInsert = New-Object System.Collections.Generic.List[string]
     foreach ($block in $payload) {
-        $key = $null
-        foreach ($ln in $block) { if ($ln.Trim() -ne '') { $key = $ln; break } }
-        if ($null -eq $key) { continue }
-        if ($existing.Contains($key.Trim())) { $dupes++; continue }
+        $key = Get-BlockKey $block
+        if ($key -eq '') { continue }
+        if ($existing.Contains($key)) { $dupes++; continue }
         foreach ($ln in $block) { $toInsert.Add($ln) | Out-Null }
-        [void]$existing.Add($key.Trim())
+        [void]$existing.Add($key)
         $added++
     }
     if ($toInsert.Count -gt 0) { $lines.InsertRange($insertAt, $toInsert) }
