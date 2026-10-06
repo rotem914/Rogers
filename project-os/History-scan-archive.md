@@ -73,3 +73,4 @@ Moved here verbatim by project-os/rotate-history.ps1. Movement only: rows are ne
 | 2026-09-06 | design | **Every card is #21222C, and hovers at #252632.** One token pair carries the project tile, the note row, the composer open and closed, and the open tab, so they all moved together. |
 | 2026-09-06 | design | **Home's new-project tile draws the same plus the tabs use, inside a solid 2px edge.** The typed plus character is gone, so one drawn shape now means add in both places. Hovering it fills the tile instead of lighting its edge, over the same 144ms the other cards use. |
 | 2026-09-06 | deploy | **The logo and the taller bar are live.** Version `84d57745`, no schema involved. |
+| 2026-09-06 | done | **The logo really does render on the live site.** Rotem checked it signed in, which is the one thing a shell with no session could not answer. |

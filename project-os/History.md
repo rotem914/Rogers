@@ -1,4 +1,4 @@
-# Rogers — History
+# Rogers: History
 
 The change log. Every completed change lands here, in two layers: a scan table
 you always read, and an appendix you read only when digging.
@@ -11,13 +11,23 @@ did that change do, and how do I undo it".
 - **After every completed change**, add one scan row AND one appendix row. Both,
   in the same change that did the work.
 - **One change = one row.** Not one row per file, not one row per session. A log
-  that has to be reassembled from fragments is a log nobody reads.
+  that has to be reassembled from fragments is a log nobody reads. A FAST MODE
+  burst counts as one change: one scan row and one appendix row for the whole
+  burst, written when the mode ends (`CLAUDE.md`, FAST MODE).
 - Write the scan row for a reader who was not there. Name the behavior that
   changed, not the files.
-- Keep appendix rows short — a few lines, not an essay. The full story is in the
+- Keep appendix rows short: about 900 characters at most, since
+  `project-os/Archive-old-rows.mjs` (or its `.ps1` twin) warns above that. The checks cell still lists
+  every check (CLAUDE.md rule 7); it is the story that stays out. The full story is in the
   commit diff; a real decision belongs in `project-os/Decisions.md`.
-- Record the commit SHA from **before** the change. That is the rollback target.
-- Never rewrite or delete a past row. Correct a wrong one by adding a new row —
+- **Commit before** names the last commit when the task started, followed by
+  `(uncommitted)`: the work waits for the next `Go commit`, which bundles it
+  with every other task since the last one. Before the project's first commit,
+  write `none yet`.
+- **Rollback** says how to undo THIS task by hand: which files, and what to
+  take out or put back. Never a whole-file checkout, a reset or a `git revert`
+  while later rows touch the same files, since that undoes their work too.
+- Never rewrite or delete a past row. Correct a wrong one by adding a new row:
   an edited log cannot be trusted about anything.
 - A `medium` or `high` risk row names its review result under **What was
   checked**: findings found, findings fixed, pre-existing ones flagged. A
@@ -25,15 +35,15 @@ did that change do, and how do I undo it".
 - Never write "tested" or "QA passed". Those phrases record nothing. Name the
   input, the screen, and what happened.
 - When this file gets long, move the oldest rows into an archive file beside it.
-  `project-os/rotate-history.ps1` does exactly that at `Go commit`, and creates
-  the archive the first time it is needed. Rows move **verbatim** — never
+  `project-os/Archive-old-rows.mjs` (or its `.ps1` twin) does exactly that at `Go commit`, and creates
+  the archive the first time it is needed. Rows move **verbatim**, never
   rewritten, never summarized, never merged, because the detail you drop is the
   one the next reader needed. Never hand-move rows: the script dedups, so it is
   safe to run every time, and a hand-move breaks that guarantee.
 
 ## Risk scale
 
-The scale's one home is `project-os/Workflow.md` step 2 — read it there, so the
+The scale's one home is `project-os/Workflow.md` step 2: read it there, so the
 two files can never disagree. State the level at task pickup; the owner's
 override wins.
 
@@ -45,7 +55,6 @@ Newest at the bottom.
 
 | Date | Area | What changed |
 |---|---|---|
-| 2026-09-06 | done | **The logo really does render on the live site.** Rotem checked it signed in, which is the one thing a shell with no session could not answer. |
 | 2026-09-06 | design | **The bar sits 56px from the top of the window instead of 32.** Every screen moved together, so the content below each one starts 24px lower. |
 | 2026-09-06 | design | **Home's title is Rotem's logo now, drawn, not typed.** The mark and the wordmark take the bar's own text colour, and the bar kept its height, so nothing below it moved. |
 | 2026-09-06 | deploy | **The colour pass and the new-project tile are live.** The darker ground, the card colours, the splash and offline page, and the tile with its drawn plus, all in one deploy, version `6d12171d`. |
@@ -125,8 +134,9 @@ Newest at the bottom.
 | 2026-09-23 | app | **A tab can be archived with its notes.** Its right-click has Archive between the checklist item and Remove: the tab and every note in it leave together, nothing is deleted, and Ctrl+Z on the page brings both back. Remove still drops the notes into Main. |
 | 2026-09-23 | deploy | **Archiving a tab with its notes is live on rogers.rotem-e.com.** Two assets changed, no schema change. The login still stands in front of every address, the new archive address included. |
 | 2026-10-04 | process | **The doc rotation no longer drops one of two decisions that share a date and title.** It now knows an archived entry by its whole text, not its heading line; table rows rotate exactly as before. |
+| 2026-10-05 | process | **Rogers runs on the newest ProjectOS kit.** New: the two guards, one rotation script, an audit, a heavy-file report, a sturdier backup, a quick check when a turn ends, and `Go update kit` itself. Every Rogers rule, invariant and record row is kept; the clashes wait for Rotem's verdict. |
 
-## Appendix — deep rows
+## Appendix: deep rows
 
 _Older rows archived -> see `History-archive.md` (moved by project-os/rotate-history.ps1, not rewritten)._
 
@@ -134,7 +144,6 @@ Newest at the bottom, same as the scan log.
 
 | Date | Task | What changed | What was checked | Result | Risk | Commit before | Rollback |
 |---|---|---|---|---|---|---|---|
-| 2026-09-09 | The tab strip's top padding | `src/web/components/TabStrip.tsx`: the strip's wrapper goes from `py-3` to `pt-4 pb-3`, Rotem's 12 to 16 on the top only. One class token split in two, nothing else moved. | In his running app, project `8f96078e`, read from the DOM on the strip's own wrapper: `padding-top: 16px`, `padding-bottom: 12px`, class `bg-bg pt-4 pb-3`, and the wrapper is 28px taller than the tab row it holds, which is 16 plus 12. The tabs Main and דד still draw and the page below them is unmoved. `npm run check` green, exit 0. Console: the known dev-pane service worker failure only, plus 404s from my own first visit to a project id that exists live but not locally. Reach is Local: `TabStrip` has one consumer, `Project.tsx`. | Pass | low | `32aef12` | `git checkout 32aef12 -- src/web/components/TabStrip.tsx`, which also takes back the checklist toggle, since that file carries other uncommitted work |
 | 2026-09-09 | The tab strip's top padding, second number | `src/web/components/TabStrip.tsx`: `pt-4` becomes `pt-4.5`, Rotem's 18, over the row above's 16. `pb-3` untouched. One class token, nothing else moved. | The real risk here was the class itself, since 18 is off Tailwind's 4px step: the built stylesheet carries `.pt-4\.5{padding-top:calc(var(--spacing) * 4.5)}`, which is 18px. In his running app, project `8f96078e`, read from the DOM on the strip's wrapper: `padding-top: 18px`, `padding-bottom: 12px`, class `bg-bg pt-4.5 pb-3`, and the wrapper is 30px taller than the tab row it holds, which is 18 plus 12. The tabs Main and דד still draw. `npm run check` green, exit 0. Reach is Local: `TabStrip` has one consumer, `Project.tsx`. | Pass | low | `32aef12` | `git checkout 32aef12 -- src/web/components/TabStrip.tsx`, which also takes back the checklist toggle, since that file carries other uncommitted work |
 | 2026-09-09 | Deploy the picture window's clicks | No code change. `npm run deploy` on Rotem's "DEPLOY"; version `d01c2ccb-b225-4331-afb3-87cfc54708c9`, 3 assets uploaded. It carries the two lightbox fixes above and one change that is not mine and was flagged to him before this ran: `src/web/components/TabStrip.tsx` went from `py-3` to `pt-4 pb-3`, another session's or his own, appearing in the tree mid-task. | `npx wrangler d1 migrations list rogers-db --remote` answered "No migrations to apply" before the deploy, and nothing in this tree changes the schema anyway. `npm run check` green, exit 0, on this exact tree, run again after the TabStrip change appeared. After the deploy, from a shell holding no session, the root and `/api/projects` both answered 302 to `roteme-pages.cloudflareaccess.com`, so nothing became public. This deployed the working tree; the commit that follows closes that. Not checked, and it needs his own signed-in browser: the live window closing on a real click there. | Pass | high | `32aef12` | `npx wrangler rollback` to version `59f0c0a0-fee4-46c6-85d3-6aeaa755dca6` |
 | 2026-09-09 | The tab strip's top padding, settled at 20 | `src/web/components/TabStrip.tsx`: the wrapper reads `bg-bg pt-5 pb-3`. This supersedes the 16 and the 18 in the two rows above, which never left the working tree; only the last number was ever committed or seen anywhere but his running app. `pb-3` untouched throughout. | Every number was read back from the DOM in his running app, project `8f96078e`, on the strip's own wrapper, and `npm run check` was green at each: 16, 18, 22, then 20. The one that stands reads `padding-top: 20px`, `padding-bottom: 12px`, class `bg-bg pt-5 pb-3`, wrapper 32px taller than the tab row it holds, which is 20 plus 12. The stylesheet check mattered for the off-step numbers only, 18 and 22, and both emitted; 20 is `.pt-5{padding-top:calc(var(--spacing) * 5)}`, on Tailwind's own 4px step. Reach is Local: `TabStrip` has one consumer, `Project.tsx`. | Pass | low | `32aef12` | `git checkout 32aef12 -- src/web/components/TabStrip.tsx`, which also takes back the checklist toggle, since that file carries other uncommitted work |
@@ -154,3 +163,4 @@ Newest at the bottom, same as the scan log.
 | 2026-09-23 | Archive a tab with its notes | Rotem's ask, with his two calls: keep Remove beside it, and no Archive screen. `src/api/tabs.ts`: `DELETE .../tabs/:id?notes=archive` archives the tab and its live notes in one batch with one timestamp; `PATCH` with `archived: false` also clears every note of that tab carrying the same stamp, in one batch. `src/web/components/TabStrip.tsx`: the Archive item, `text-danger` like the row's. `src/web/pages/Project.tsx`: the request, the handler, the undo and redo branch. `src/web/lib/undo.ts`: an `archive` action. `src/shared/types.ts`: one comment. No migration. | `npm run check` green. Port 5173 was serving another project, so my first setup requests went there and were all refused with 404, nothing written; on Rotem's "any port" I ran Rogers on 5188 and drove it in the built-in browser, throwaway project "QA archive tab", QA 10k items 1 to 6. Real right-click: Add checklist, Archive, Remove. Archive on the open tab: landed on Main, the tab left the strip, Main kept only its own note, the tab's notes answered 404 by address, Home's count went 4 to 2. Ctrl+Z, real key: the tab back in place with both notes, the note archived beforehand still 404. Ctrl+Shift+Z archived it again; a reload kept it. Remove on the other tab: its note landed in Main; Ctrl+Z brought the tab back with it, the archived tab's notes still 404. Archive on a tab that was not open, and the last one: the list on screen unchanged, the strip gone, count 1. Archive request failed through a wrapped fetch: toast "Could not archive the tab.", tab and note stayed. The archived tab's old address shows Main, the designed fallback. Console: ten 404s, all my own probes of archived notes; every tab request 200. Narrow width not run: the menu kept its width and gained one row. Review, rule 17, diff against `29db3ca`: impact local, the five changed files are the only consumers; 0 found, 0 fixed, 0 pre-existing flagged. The throwaway project was archived at the end. | Pass | high | `29db3ca` | `git revert` of this commit; nothing to undo in the data, since archived tabs and notes stay recoverable |
 | 2026-09-23 | Deploy the tab archive | No code change. `npm run deploy` on Rotem's "DEPLOY, GO COMMIT"; version `de3a0d5d-fde1-4fb3-8800-01fe943b7c32`, 2 assets uploaded. It carries the row above and nothing else was waiting in the tree. This deployed the working tree, so the feature went live before it was committed. | `npx wrangler d1 migrations list rogers-db --remote` answered "No migrations to apply". `npm run check` green before the deploy, in the row above. After the deploy, from a shell holding no session: `GET /`, `GET /api/projects` and `DELETE /api/projects/x/tabs/y?notes=archive` all answered 302 to `roteme-pages.cloudflareaccess.com`. Not checked, it needs his login: the Archive item on the live site. | Pass, the live click is Rotem's | high | version `51404442` | `npx wrangler rollback` to version `51404442-c17a-4a2d-b893-8f417c34daba` |
 | 2026-10-04 | Commit the rotation script's dedup fix | Found uncommitted at `Go commit`, not made in this session; its own comment dates the bug 2026-09-26. `project-os/rotate-docs.ps1`: the archive's dedup key is the whole block, every non-blank line trimmed, through `Get-BlockKey`, and decisions already in the archive are keyed the same way, so two decisions with the same date and title are both kept. A table row is one line, so row dedup is unchanged. | Ran both rotation scripts live at this `Go commit`: no errors, nothing to move, Decisions at 16 of 25. Read the diff: 14 lines in, 6 out, nothing outside the dedup. Not checked: a real rotation of two same-titled decisions, since none is due. | Pass, no rotation exercised | low | `b951d55` | `git revert` of this commit |
+| 2026-10-05 | Go update kit | Kit `2d09a76` (install, found by four byte-identical files, never recorded) to `372649a`, recorded in `Kit-version.json`. Copied: `Hooks.md` and ten new files (three guards, `Archive-old-rows`, `Audit-project-records`, `Compare-kit-files`, `Find-heavy-files`, `Install-project-hooks`, `Rule-reasons`). Tool-merged: Workflow, QA. Hand-merged: CLAUDE.md, Conversations, Code_review, Visual_QA, `Hooks-settings.json` (renamed, guards added), the six record files' instructions. New and filled: `Check-command.json` with `npm run lint`, both backup scripts with `target` and `.wrangler`. Waiting on Rotem: the kit's rule 22, commit steps 4 to 7, the plan's home, two Conversations paragraphs, four old scripts. | `npm run check` green. Guards equal the plugin's copy, exit 0. Fake delete to the project guard and to the plugin: blocked, exit 2. `Install-project-hooks --dry`: plugin covers PreToolUse. `Archive-old-rows --dry-run`: reads all files, 0 to move. Record files diffed: instruction lines only, 100 History rows and 16 decisions kept. Review: docs and scripts only, no app code; 0 found. Not run: the plugin's approve command, outside the project. | Pass | medium | `c2345c6` (uncommitted) | Restore `CLAUDE.md` and the `project-os/` docs named here from `c2345c6`, delete the new files and `guards/`, rename `Hooks-settings.json` back. |

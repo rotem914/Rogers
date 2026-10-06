@@ -1,4 +1,4 @@
-# Rogers — Map
+# Rogers: Map
 
 The architecture snapshot: the stack in a line, the folder tree, where the data
 lives, what owns what.
@@ -12,7 +12,7 @@ lies costs more than no map.
   project root, then write what is actually there. Until you do, this file
   describes a project that does not exist.
 - **Update it in the same change** that adds, moves or removes a folder, a route,
-  a data store, or a major file. Never as a follow-up task — a follow-up is a
+  a data store, or a major file. Never as a follow-up task: a follow-up is a
   task that does not happen.
 - One line per entry: what it is, not how it works. The how lives in the code.
 - Paths are relative to the repository root.

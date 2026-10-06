@@ -1,4 +1,4 @@
-# Rogers — Mistakes
+# Rogers: Mistakes
 
 The waiting room for the assistant's own mistakes.
 
@@ -39,7 +39,7 @@ Mistakes in HOW you worked:
   work continues. A mistake recorded later is a mistake recorded never.
 - **Read this file at task pickup.** It stays short on purpose, so there is no
   excuse to skip it.
-- **The two tails rotate, Open never does.** `project-os/rotate-docs.ps1` keeps
+- **The two tails rotate, Open never does.** `project-os/Archive-old-rows.mjs` (or its `.ps1` twin) keeps
   the newest 30 rows in Promoted and in Retired at `Go commit`, moving older
   ones verbatim into `Mistakes-archive.md`. That is a ceiling, not permission
   to let this file grow: the rule above still governs.
@@ -56,7 +56,11 @@ Mistakes in HOW you worked:
 | Using an outside tool | that server's file under `project-os/mcp/` |
 
 - **Never let it grow into a diary.** It has exactly two ways out: promoted to
-  a rule, or retired unrepeated. Nothing accumulates.
+  a rule, or retired on the owner's word.
+- **An Open row stays until the owner removes it.** Nothing retires on a
+  timer: a row leaves the Open table only when the owner says so (it moves to
+  Retired, with his reason in Why it left), or when it repeats and is promoted,
+  naming the file that now holds the rule.
 - **It is not a confession log and carries no apology.** One line of fact,
   because the next session needs the fact and not the feeling.
 
@@ -70,6 +74,9 @@ Mistakes in HOW you worked:
 
 ## Promoted
 
+Newest at the bottom: add a row under the table's last row.
+`project-os/Archive-old-rows.mjs` (or its `.ps1` twin) moves rows from the top.
+
 | Date | The slip | Where its rule now lives |
 |---|---|---|
 | 2026-09-04 | Fired several file edits in parallel; Rotem read it as work spread across agents | `CLAUDE.md` working rules, rule 22 |
@@ -77,6 +84,9 @@ Mistakes in HOW you worked:
 | 2026-09-04 | Stopped for approval after every plan step once he had made clear he wanted the work to run | `CLAUDE.md` working rules, rule 22 |
 
 ## Retired
+
+Newest at the bottom: add a row under the table's last row.
+`project-os/Archive-old-rows.mjs` (or its `.ps1` twin) moves rows from the top.
 
 | Date | The slip | Why it left |
 |---|---|---|

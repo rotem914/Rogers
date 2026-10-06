@@ -1,13 +1,12 @@
 # Reply format
 
 The rules for every reply you write to Rotem.
-They exist so a reply can be scanned in seconds instead of read twice.
 
 This file is the ONE home of every reply-format rule.
 `CLAUDE.md` only points here and carries no limits of its own.
 
 Each rule below is followed by a live example of a reply obeying it.
-Examples sit inside `~~~` fences — they show a reply, they are never rules themselves.
+Examples sit inside `~~~` fences: they show a reply, they are never rules themselves.
 
 ## Language
 
@@ -19,42 +18,38 @@ The language of the request never changes the language of the answer.
 An owner who sometimes writes in another language still gets the answer in the
 project's one.
 
-Matching the question instead makes two sessions read differently, and the owner
-has to re-learn the vocabulary each time.
-
 ## In-flight narration
 
-Lines written *while working* follow the TONE rules but not the layout: short,
-one sentence per line, no padding — and no `----` dividers or `# H1` headings.
-
-That scaffolding is built for a final report; stamping it on a one-line status
-makes the stream noisier, not calmer.
+Nothing is written between tool calls.
+One line at pickup names the task, its type, the area it touches and its risk
+level, plus any invariant it touches; the next text is the report.
+No plan of the next edit, no summary of the last one, no "I'll do X now".
+That one line follows the tone rules, never the layout: no divider, no heading.
+The one exception is a question that blocks the work, and it ends the turn.
 
 ## The one hierarchy
 
-`# H1` marks a section or a topic — one distinct heading, nothing above it.
+`# H1` marks a section or a topic: one distinct heading, nothing above it.
 
-`**bold**` marks a sub-point INSIDE a section — a stacked-list point, a status
-group — never a section or topic itself.
-
-Most chat clients render H2 gray and H3 identically to bold, so H1 is the only
-heading that reads as a heading. That is why bold is never a section.
+`**bold**` marks a sub-point INSIDE a section (a stacked-list point, a status
+group), never a section or topic itself.
 
 ## Report-back sections
 
 After work, the summary uses these four sections; drop any with nothing to say.
 
-**What changed** — the behavior in ≤2 sentences, not a per-file breakdown.
-**What was checked** — only when a check FAILED or surprised the owner. A green
-build, passing tests and a clean sweep are the expected state; the full list
-lives in `project-os/History.md`.
-**Known limitation** — one line each; skip when nothing is risky.
-**Next** — one short step or decision.
+**What changed**: the behavior in ≤2 sentences, not a per-file breakdown.
+**What was checked**: only a check that failed or could not run, the Path B
+or Path C outcome of the browser check (`project-os/Workflow.md` step 9), and
+review findings waiting for the owner's verdict. A passed check and a clean review are the expected
+state and are never listed; the full list lives in `project-os/History.md`.
+**Known limitation**: one line each; skip when nothing is risky.
+**Next**: one short step or decision.
 
 Many items: keep the ≤2-sentence headline and stack them per rule 10.
 
 What shrinks under pressure is the CONTENT, never the layout. Every layout rule
-in this file stands at every length — dividers, `# H1` headings, one sentence per
+in this file stands at every length: dividers, `# H1` headings, one sentence per
 line. Cutting a heading or a divider to fit is the one thing the budget must
 never do.
 
@@ -62,58 +57,56 @@ never do.
 
 ### 1 · Cut hard
 
-Short by default — 3 prose lines, each at most 16 WORDS.
-16 is a ceiling, not a target — use the fewest words that still explain.
-Inside that ceiling, say the problem and the why — never a verdict alone.
+Short by default: 3 prose lines, each at most 16 WORDS.
+16 is a ceiling, not a target: use the fewest words that still explain.
+Inside that ceiling, say the problem and the why, never a verdict alone.
 A topic the owner has not heard of gets its cause in words, before the verdict.
 Only the long evidence and the full check list go to the `project-os/History.md` row.
 The ceiling holds for EVERY reply, work behind it or not.
-It lifts ONLY when the owner asks for a `full report`: 16 prose lines,
-and once more for the install report that `Installation.md` defines, which
-has fixed sections it must carry in full. Every layout rule still applies
-to that report; only the length ceiling lifts.
-Mention that phrase once, at setup, so the owner has it; never offer it after.
+A findings list (rule 10) has no ceiling: every item in full.
+Otherwise it lifts ONLY when the owner asks for a `full report`: 16 prose lines,
+and twice more for the two messages `Installation.md` defines, the question
+batch and the closing report, which have fixed contents they must carry in
+full. Every layout rule still applies to both; only the length ceiling lifts.
+Mention `full report` once, at setup, so the owner has it; never offer it after.
+The FAST MODE offer in `CLAUDE.md` is exempt from the ceiling too: it is quoted
+verbatim, and its lines do not count against the reply it closes.
 The ceiling counts prose only; dividers, headings, blank lines and fences don't.
 It is the whole reply's budget, the four report sections included.
-When content competes for it, bad news wins the room — a limitation or a failed
+When content competes for it, bad news wins the room: a limitation or a failed
 check is never the line that gets cut.
-Over the ceiling, CUT — never reformat the same content into more lines.
+Over the ceiling, CUT: never reformat the same content into more lines.
 Cut any sentence that changes nothing the owner knows or does next.
 A single-topic answer needs no headline or divider.
-Open on the substance — nothing above the first `----`, no preamble ("Sure —").
+Open on the substance: nothing above the first `----`, no preamble ("Sure,").
 
-The owner asks when more is wanted, so the default is the floor, not a guess.
-
-**These numbers are a dial, not a law.** Three lines of sixteen words is only a
-starting default, and another owner may want five, or ten.
-The full report's sixteen LINES is a separate third number — not the sixteen-word
+**These numbers are law, and the install never asks about them.** Three lines
+of sixteen words ships as written, in every project, with no sample answers to
+choose between and no question about length at setup.
+The full report's sixteen LINES is a separate third number, not the sixteen-word
 ceiling, and the two move independently.
 All three live in this rule and nowhere else, so nothing can drift out of sync.
+An owner who wants a different limit edits this rule later, with the file in
+front of them, and that edit is the only way the numbers change.
 
 Rotem chose the terse default on 2026-09-04: 3 prose lines of 16 words, and 16
 lines for a full report. Tone: blunt, no padding, model the limits and never pad
 them.
 
 "Never a verdict alone" is the half that matters most.
-A conclusion fits in ten words. A cause almost never does.
-Raise something new, send its explanation to a file the owner does not read, and
-the reply arrives as a table of contents — technically short, and useless.
 
 ~~~
-Both checks pass and nothing in the working tree is left over.
+The export button now downloads the whole list, not only the visible page.
 
 Say the word when you want this locked in.
 ~~~
 
 ### 2 · Short headlines
 
-Give each section a short `# H1` heading on its own line — one word where it
+Give each section a short `# H1` heading on its own line: one word where it
 works (`# Changed`, `# Checked`, `# Limitation`, `# Next`), never more than
 three, no bold wrapper, no trailing colon.
 Then a blank line, then the text.
-
-Past three words a heading becomes a sentence, and the eye stops using it as a
-landmark.
 
 ~~~
 ----
@@ -132,11 +125,8 @@ Say "do the export button" to start the next one.
 
 Put a `----` divider, with an extra blank line above it, directly above every
 `# H1` heading.
-Bold sub-headlines take a divider only where rules 10–11 grant one — stacked
+Bold sub-headlines take a divider only where rules 10 to 11 grant one: stacked
 points do, numbered or not; grouped-status headers don't.
-
-Spacing alone does not separate two blocks in a chat client.
-The divider is the only thing that does.
 
 ~~~
 ----
@@ -155,8 +145,6 @@ Say the word and I will lock it in.
 
 Leave a blank line above every paragraph.
 
-The reply is read in a chat client, where a wall of text is skipped whole.
-
 ~~~
 The rename tool is live.
 
@@ -167,12 +155,10 @@ Old addresses redirect to the new one.
 
 ### 5 · One sentence per line
 
-Break after every sentence-ending period — one sentence per line, never two.
+Break after every sentence-ending period: one sentence per line, never two.
 Don't break on periods that aren't sentence ends (`e.g.`, `.env`, `4.8`).
-Mid-sentence breaks only at punctuation already there — comma, semicolon, dash,
-colon, closing parenthesis — never bare mid-clause.
-
-Two sentences sharing a line get read as one, and the second is the one lost.
+Mid-sentence breaks only at punctuation already there (comma, semicolon, dash,
+colon, closing parenthesis), never bare mid-clause.
 
 ~~~
 The build failed on the third check.
@@ -188,9 +174,6 @@ parentheses, or comma strings.
 Two ideas are two sentences on two lines.
 A list packed mid-sentence becomes its own lines, one item each.
 
-A sentence holding two ideas has to be read twice — once to find where the first
-one ended.
-
 ~~~
 The list code was already generic.
 One line gave the new section its ids, renames, and redirects.
@@ -199,12 +182,9 @@ Search and the sitemap came free.
 
 ### 7 · Lead-in split
 
-Never run a label or question and its explanation on one line — break after the
+Never run a label or question and its explanation on one line: break after the
 colon or question mark so the lead-in sits alone and the detail follows on the
 next line.
-
-On one line the label swallows its own answer, and the eye takes in the label
-only.
 
 ~~~
 The real question:
@@ -216,18 +196,16 @@ does the old address still get traffic after the rename?
 When proposing options or next actions, use a numbered `1)` `2)` `3)` list under
 its own headline.
 
-**Two asks are two numbered items — never one sentence joined by "and".**
+**Two asks are two numbered items, never one sentence joined by "and".**
 However short, and for a verdict list (fix / drop / backlog) too.
 Two things the owner owes an answer to means two numbered lines.
-
-One sentence with two questions in it gets one answer, and the second ask is lost.
 
 ~~~
 ----
 # Next
 
-1) The empty state on the list page — fix, drop, or backlog?
-2) The same treatment on the search page — do you want it?
+1) Fix, drop, or backlog the empty state on the list page?
+2) Do you want the same treatment on the search page?
 ~~~
 
 ~~~
@@ -241,11 +219,8 @@ One sentence with two questions in it gets one answer, and the second ask is los
 
 ### 9 · Topic headlines in long answers
 
-Any reply spanning several topics gives each topic its own section (rules 2–3),
+Any reply spanning several topics gives each topic its own section (rules 2 to 3),
 not just the fixed summary ones.
-
-A second topic with no heading of its own is read as part of the first, and
-answered as if it were.
 
 ~~~
 ----
@@ -265,15 +240,12 @@ Renaming is safe.
 ### 10 · Stacked list points
 
 In a list of findings, never pack a point into a paragraph.
-Give each point a short **bold** headline (3–4 words), then one beat per line
-beneath it — observation, evidence, recommendation — blank line between.
-EVERY point takes a `----` divider above its headline — numbered or not.
-Points sharing one topic fold a number into the headline (`1 ·`, `2 ·`).
-Keep that number on the headline line — never a Markdown `1.` list item.
-
-A `1.` list item nests the following lines, which reflows the stacked beats back
-into one dense paragraph — exactly what this rule exists to prevent. And numbers
-alone do not separate blocks in a chat client; the divider is what does.
+Give EVERY point, numbered or not, a **bold** headline with `----` above it.
+Under it, in full and never trimmed: `Problem:`, `Proposal:`,
+`Your workflow:`, each label alone on its line, one sentence per line below.
+`Proposal:` says what to do and how it plays out, together.
+Same-topic points number the headline (`1 ·`), never a Markdown `1.` item.
+The install's two messages keep the one-line Problems shape `Installation.md` gives them.
 
 ~~~
 ----
@@ -282,31 +254,38 @@ alone do not separate blocks in a chat client; the divider is what does.
 ----
 **1 · Status column is ambiguous**
 
+Problem:
 The column shows the group's status, not the item's.
 
-The list row reads the parent record.
-
+Proposal:
 Pick one meaning and label it.
+Everyone then reads the column the same way.
+
+Your workflow:
+No change for you.
 
 ----
 **2 · Progress reads as text only**
 
+Problem:
 done / total is a bare number.
 
-A thin bar would make it scannable.
+Proposal:
+A thin bar beside it.
+Progress is then scannable at a glance.
+
+Your workflow:
+No change for you.
 ~~~
 
 ### 11 · Grouped status lists
 
-Items sharing a state group under one short **bold** header in plain words —
+Items sharing a state group under one short **bold** header in plain words:
 **Done**, **Half done**, **Not started**.
 The state is said ONCE, in that header.
 Never an icon or emoji legend, and never a Markdown table.
 Under the header, one item per line: the name, then only the detail that changes
 the owner's next action.
-
-An icon legend makes the reader decipher a key before reading. A table row per
-item is the same rejected one-liner, packed into a grid.
 
 ~~~
 ----
@@ -317,10 +296,10 @@ A1 the list page.
 A2 entry identity.
 
 **Half done**
-A5 backups — waiting on your account.
+A5 backups, waiting on your account.
 
 **Not started**
-A7 the export button — say "do A7".
+A7 the export button, say "do A7".
 ~~~
 
 ### 12 · Verbatim text goes in a fence
@@ -328,21 +307,27 @@ A7 the export button — say "do A7".
 Commands, code, quoted wording, addresses and paths the owner will USE each get
 their own fence.
 One per line, complete, never buried mid-sentence.
-Give only a NEW address, never the app's root — that one already sits in an open
+Give only a NEW address, never the app's root: that one already sits in an open
 tab.
 A named route is the FULL absolute address, never a bare path.
 A file path is the FULL absolute path, never a project-relative one.
 A command carries the full absolute path it needs, so it runs from anywhere;
 never "run this in the project folder", and never a bare command that only
 works from one directory. Rotem asked for this on 2026-09-04.
-A name merely referenced in prose stays as inline backticks.
+A name merely referenced in prose stays as inline backticks, for an owner who reads code; otherwise rule 14 applies.
 The test is copy-intent: if the owner has to retype it to act, fence it.
-Inside a fence no layout rule applies — the fence is one object.
+Inside a fence no layout rule applies: the fence is one object.
+A terminal command starts by entering the project folder, full path, on the
+same line, in the shell's own syntax.
+Never a bare `npm run dev`: it works only if the terminal happens to sit there.
+An instruction to click through a dashboard comes with the direct link to that
+screen, fenced, not a trail of menu names.
 
 **A fence carries ONLY what the owner copies, never content they read.**
 A checklist, a plan, steps, findings or an explanation are ordinary reply text,
 in the normal layout, every time.
 A fence is a clipboard, not a container.
+The one exception is rule 14's skippable reference block, for an owner who does not read syntax.
 
 **One exception, set by Rotem on 2026-09-04:** anything spatial or structural,
 a screen, a flow, a folder tree, an architecture, a before and after, is shown
@@ -360,11 +345,35 @@ its dividers and its line rhythm, and reads as machine output instead of an
 answer. A long fence also slips past rule 1's ceiling, which counts prose only,
 so it hides length as well as hurting the read.
 
+In PowerShell the command form is
+`cd "C:\code\northwind"; if ($?) { npm run dev }`, in a POSIX shell
+`cd "/Users/alex/code/northwind" && npm run dev`.
+
+~~~
+Start it and look:
+
+```
+cd "/Users/alex/code/northwind" && npm run dev
+```
+
+Then open the settings page and the save button should answer at once.
+~~~
+
+~~~
+Turn on object storage for the account, here:
+
+```
+https://dash.cloudflare.com/?to=/:account/r2
+```
+
+Say enabled and I create the bucket.
+~~~
+
 ~~~
 The new page is at:
 
 ```
-http://localhost:5173/settings/notifications
+http://localhost:3000/settings/notifications
 ```
 
 Nothing on the existing pages changed.
@@ -390,14 +399,15 @@ https://dash.cloudflare.com/b7c38aacfa133975942d533daaa542bb/r2/overview
 
 A question for the owner is the LAST thing in the reply, never buried mid-reply.
 In a sectioned reply it sits under the final headline; number options (rule 8).
-
-A question in the middle is answered late or not at all.
+When the client has a built-in question panel, a question with options goes
+through it, always, with one line per option; the feed then carries only what
+the answer is waiting on.
 
 ~~~
 ----
-# Checked
+# Changed
 
-Three pages, no console errors, saving survives a reload.
+The contact form now shows a clear line when sending fails.
 
 
 ----
@@ -409,9 +419,9 @@ The form needs one call from you:
 2) Use a managed service.
 ~~~
 
-### 14 · Plain language — the owner's words, never the code's
+### 14 · Plain language: the owner's words, never the code's
 
-Rotem is a senior product and UX designer — speak in that role's vocabulary.
+Rotem is a senior product and UX designer: speak in that role's vocabulary.
 The test for every word: would the owner have to ask what it meant?
 If yes, rewrite the line before sending; if their trade reads code, code words are fine.
 Before naming any part of the product, say what it is and where it sits on screen.
@@ -420,18 +430,11 @@ State every technical finding as its consequence for the product, one per line (
 A list of suggested wording runs in the product's own order, quoting the words the owner sees.
 Never group it under headings you invented; they exist nowhere on the owner's screen.
 Name each thing the way the OWNER says it, never the way the code says it.
-For an owner who does not read syntax, none of it sits inline in a sentence —
-collect commands, flags, patterns and paths in ONE fenced block at the section's
-end, labeled skippable, and frame every decision in product terms.
+For an owner who does not read syntax, say each thing in plain words, never as code in a sentence.
+A command, address or path they must USE still gets its own fence where it is needed (rule 12); it is never skippable.
+Syntax they would only read is left out, or collected in ONE fenced block at the section's end, labeled skippable.
+Frame every decision in product terms.
 If the owner says they did not understand, the explanation was built wrong; rebuild it.
-
-Repo-internal nouns are worse than syntax: they LOOK like plain English, so they
-slip past unnoticed and the owner cannot even tell they were jargon until asking.
-The test is not "is it correct" — it is "would the owner have to ask".
-And a correct answer that never says what thing it is talking about, or where
-that thing sits on the owner's screen, fails the same way: the owner knows the
-product deeply, so an explanation that needs three retries was built without
-context, not received without skill.
 
 ~~~
 Never:
@@ -471,8 +474,6 @@ Those are the two lines each suggestion below rewrites.
 Answer the deeper question inside rule 1's ceiling, dropping breadth to pay.
 When the owner calls a reply too long, cut content, never a `# H1` or a `----`.
 
-Asked for detail, an unbounded reply comes back as eight sections.
-The correction then strips the layout, which is the wrong half to cut.
 The numbers live in rule 1 only, so this rule can never drift from them.
 
 ~~~
@@ -481,22 +482,49 @@ It refetches the whole list on every keystroke.
 Fix: fetch once, filter in memory.
 ~~~
 
-### 16 · One home — never open a second file
+### 16 · One home: never open a second file
 
 This file is the ONLY place that carries reply-format rules.
-Never create, open, or write another file about how replies are written — not a
+Never create, open, or write another file about how replies are written: not a
 memory file, not a note, not a plan, not a scratch doc.
 A format lesson learned mid-conversation is added HERE, in place.
 
-A second home means the rules drift, duplicate, and sit somewhere the owner
-cannot see or edit.
+One thing is not a second home: the row a correction earns in
+`project-os/Mistakes.md` (CLAUDE.md rule 20). That row records the slip, so a
+repeat can be seen and promoted; the RULE it points at still lives here, and
+only here. A correction on how a reply was written gets both: nothing new in
+this file when the rule already exists, and one row there every time.
+
+Nor is `project-os/Rule-reasons.md`: it holds only why these rules exist,
+never a rule, and it is opened only when a rule is questioned or changed.
 
 ~~~
 That rule is already rule 6 here.
-Nothing to record — I broke a rule that exists.
+One row goes on the mistakes list; the rule stays as it is.
 ~~~
 
-### 17 · Never a long dash
+### 17 · After a commit, never print the push command
+
+End a commit report with a `# Next` section carrying one line:
+`Push to live, <joke> <emoji>`.
+One clause, short, WITTY with a little sting, a tease, never a silly pun.
+BUILD IT FROM THE WORK JUST COMMITTED, so the line can never repeat.
+It should read like a sharp friend ribbing the owner, not a dad joke.
+Never lift a line from this file, and never read past sessions for one.
+Close with ONE emoji, LONG-ESTABLISHED: a newer one renders as a white square.
+Rule 12 does not apply here: there is no command to fence.
+In a cloud session you have already pushed the session's own branch (CLAUDE.md rule 22), so the line opens `Merge to live,` instead.
+A cloud session with no remote to push to gets no such line: Next says the commit is unpushed and goes when the session's machine does.
+
+~~~
+----
+
+# Next
+
+Push to live, the footer only needed three reminders 🕰️
+~~~
+
+### 18 · Never a long dash
 
 Never write a dash longer than a hyphen: not `—`, not `–`, not a `--` pair.
 Use a comma, a period, a colon, or a new line instead.
@@ -504,10 +532,12 @@ This covers every text you write: replies, docs, commit messages, product copy.
 The `----` divider is layout, not punctuation, so it stays.
 A single hyphen inside a compound word (`build-time`) is untouched.
 
-Two thoughts joined by a long dash are two sentences, which rules 5 and 6
-already demand; the dash mostly hides a chain this file bans elsewhere. Text
-already written is not retro-edited; the rule is forward-looking until the
+Text already written is not retro-edited; the rule is forward-looking until the
 owner asks for a sweep.
+
+The `## YYYY-MM-DD · Title` heading in Decisions.md uses a middle dot because a
+long dash is banned, and the rotation script accepts any separator there, so
+an older entry written with a dash still rotates.
 
 ~~~
 Never:
