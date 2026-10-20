@@ -19,12 +19,25 @@
  * Tabs are dragged into the order they should sit in, the same way the tiles on
  * Home are: the whole chip is the handle and the strip rearranges under the
  * mouse rather than only after the drop. Main is not draggable, because it has
- * no row of its own and so nowhere to keep a position; it stays first. */
+ * no row of its own and so nowhere to keep a position; it stays first.
+ *
+ * A note row dragged up from the list can be dropped on any tab but the open
+ * one, Main included, and moves there. The chip under it lights up the way it
+ * does on hover. */
 
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { Link } from "react-router";
 import type { Tab } from "../../shared/types";
 import { arrange, moved } from "../lib/reorder";
+
+/**
+ * What a dragged note row carries besides plain text, so a chip can tell a
+ * note from a tab being dragged along the strip. A browser only names the
+ * kinds a drag carries while it is under way, never the data, so the kind is
+ * the signal and the note id is read at the drop. Lower case on purpose: the
+ * browser reports the kinds lower-cased.
+ */
+export const NOTE_DRAG = "application/x-rogers-note";
 
 export function TabStrip({
 	projectId,
@@ -37,6 +50,7 @@ export function TabStrip({
 	onArchive,
 	onToggleChecklist,
 	onReorder,
+	onMoveNote,
 }: {
 	projectId: string;
 	/** What the first tab is called: "Main" until it is renamed. */
@@ -56,6 +70,8 @@ export function TabStrip({
 	/** The tabs after Main, in their new order. Rejects when it was not saved,
 	 *  so the strip can go back to the order the Worker still holds. */
 	onReorder: (ids: string[]) => Promise<void>;
+	/** A note row dropped on a tab: the note's id, and the tab, null for Main. */
+	onMoveNote: (noteId: string, tabId: string | null) => void;
 }) {
 	/* The order being dragged: in state so the strip redraws, and in a ref so the
 	   drop handler can read what the last hover wrote, because state is a render
@@ -157,6 +173,9 @@ export function TabStrip({
 							to={`/p/${projectId}`}
 							active={activeId === null}
 							onRename={(name) => onRename(null, name)}
+							onNoteDrop={
+								activeId === null ? undefined : (noteId) => onMoveNote(noteId, null)
+							}
 						/>
 						{shown.map((tab) => (
 							<div
@@ -176,6 +195,11 @@ export function TabStrip({
 									onArchive={() => onArchive(tab.id)}
 									checklist={tab.checklist}
 									onToggleChecklist={() => onToggleChecklist(tab.id)}
+									onNoteDrop={
+										activeId === tab.id
+											? undefined
+											: (noteId) => onMoveNote(noteId, tab.id)
+									}
 								/>
 							</div>
 						))}
@@ -221,10 +245,13 @@ function TabChip({
 	onArchive,
 	checklist = false,
 	onToggleChecklist,
+	onNoteDrop,
 }: {
 	name: string;
 	to: string;
 	active: boolean;
+	/** Left out on the open tab: a note dropped there would go nowhere. */
+	onNoteDrop?: (noteId: string) => void;
 	onRename?: (name: string) => Promise<void>;
 	/** Left out on Main, which cannot be removed. */
 	onRemove?: () => void;
@@ -271,6 +298,29 @@ function TabChip({
 		};
 	}, [menuOpen]);
 
+	/* Lit while a note row is held over the chip. A drag leaving for one of the
+	   chip's own children is not a leave, and a drag that ends anywhere else,
+	   let go or cancelled with Escape, puts the chip back too, since the chip
+	   hears neither of those itself. */
+	const [noteOver, setNoteOver] = useState(false);
+
+	useEffect(() => {
+		if (!noteOver) return;
+		function onEnd() {
+			setNoteOver(false);
+		}
+		document.addEventListener("dragend", onEnd);
+		document.addEventListener("drop", onEnd);
+		return () => {
+			document.removeEventListener("dragend", onEnd);
+			document.removeEventListener("drop", onEnd);
+		};
+	}, [noteOver]);
+
+	function carriesNote(event: DragEvent<HTMLDivElement>): boolean {
+		return onNoteDrop !== undefined && event.dataTransfer.types.includes(NOTE_DRAG);
+	}
+
 	function startEditing() {
 		setDraft(name);
 		setFailed(false);
@@ -304,8 +354,36 @@ function TabChip({
 				event.preventDefault();
 				setMenuOpen(true);
 			}}
+			onDragEnter={(event) => {
+				if (carriesNote(event)) setNoteOver(true);
+			}}
+			onDragOver={(event) => {
+				/* Without this the chip is not a drop target and no drop fires. */
+				if (!carriesNote(event)) return;
+				event.preventDefault();
+				event.dataTransfer.dropEffect = "move";
+			}}
+			onDragLeave={(event) => {
+				if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+					setNoteOver(false);
+				}
+			}}
+			onDrop={(event) => {
+				if (!carriesNote(event)) return;
+				event.preventDefault();
+				/* The strip's own drop handler saves a dragged tab order, and must not
+				   hear a note landing on one of its chips. */
+				event.stopPropagation();
+				setNoteOver(false);
+				const noteId = event.dataTransfer.getData(NOTE_DRAG);
+				if (noteId !== "") onNoteDrop?.(noteId);
+			}}
 			className={`relative flex items-center rounded-card transition-colors duration-[144ms] ease-out ${
-				active ? "bg-card text-text" : "text-muted hover:bg-surface-hover hover:text-text"
+				active
+					? "bg-card text-text"
+					: noteOver
+						? "bg-surface-hover text-text"
+						: "text-muted hover:bg-surface-hover hover:text-text"
 			}`}
 		>
 			{editing ? (

@@ -9,22 +9,24 @@ import { useEffect, useLayoutEffect, useRef, useState, type DragEvent } from "re
 import { useParams, useSearchParams } from "react-router";
 import type {
 	CreateTabBody,
+	Note,
 	NotePreview,
 	Project as ProjectType,
 	ReorderNotesBody,
 	ReorderTabsBody,
 	Tab,
+	UpdateNoteBody,
 	UpdateProjectBody,
 	UpdateTabBody,
 } from "../../shared/types";
-import { apiFetch } from "../platform/api-client";
+import { ApiError, apiFetch } from "../platform/api-client";
 import { prefetch, useApi } from "../lib/useApi";
 import { arrange, moved } from "../lib/reorder";
 import { TabHistory, undoShortcut } from "../lib/undo";
 import { TopBar } from "../components/TopBar";
 import { NoteRow } from "../components/NoteRow";
 import { Composer, type ComposerHandle } from "../components/Composer";
-import { TabStrip } from "../components/TabStrip";
+import { NOTE_DRAG, TabStrip } from "../components/TabStrip";
 import { Toast } from "../components/Feedback";
 
 /* How far down a list was scrolled when it was left FOR A NOTE, for as long as
@@ -198,6 +200,16 @@ export function Project() {
 		});
 	}
 
+	/* Which tab a note is in, and nothing else about it: the title, the body
+	   and the pictures belong to the saver, and this never sends them. */
+	async function setNoteTab(noteId: string, target: string | null) {
+		const body: UpdateNoteBody = { tabId: target };
+		await apiFetch<Note>(`/api/notes/${noteId}`, {
+			method: "PATCH",
+			body: JSON.stringify(body),
+		});
+	}
+
 	/** What the first tab is called right now. */
 	const mainName = project?.mainTabName ?? "Main";
 
@@ -267,6 +279,25 @@ export function Project() {
 		if (archivedId === tabId) setSearchParams({}, { replace: true });
 	}
 
+	/* A note row dropped on another tab's chip. Where it came from is the tab
+	   the note itself names, not the open one: a note in Main can still name a
+	   removed tab, and undo has to write that back, or bringing the removed tab
+	   back later would leave this note behind in Main. A list remembered from
+	   before rows carried their tab names none, and the open tab is then the
+	   same answer. */
+	async function moveNote(noteId: string, target: string | null) {
+		const from = shown?.find((note) => note.id === noteId)?.tabId ?? tabId;
+		setTabFailed(null);
+		try {
+			await setNoteTab(noteId, target);
+		} catch {
+			setTabFailed("Could not move the note.");
+			return;
+		}
+		tabHistory.record({ kind: "move", id: noteId, from, to: target });
+		notes.refetch();
+	}
+
 	/* The one item on a tab's right-click menu that reads "Add checklist" or
 	   "Remove checklist", depending on which way the tab's own switch is set.
 	   The marks live on the notes and are never touched from here, so taking a
@@ -314,11 +345,16 @@ export function Project() {
 		setTabFailed(null);
 
 		/* Taking back an add removes, and taking back a remove restores; redo is
-		   the same pair the other way round. */
-		const removing = action.kind !== "rename" && (action.kind === "add") === (step === "undo");
+		   the same pair the other way round. A move only ever moves the note. */
+		const removing =
+			action.kind !== "rename" &&
+			action.kind !== "move" &&
+			(action.kind === "add") === (step === "undo");
 
 		try {
-			if (action.kind === "rename") {
+			if (action.kind === "move") {
+				await setNoteTab(action.id, step === "undo" ? action.from : action.to);
+			} else if (action.kind === "rename") {
 				const name = step === "undo" ? action.from : action.to;
 				if (action.id === null) await setMainName(name);
 				else await setTabName(action.id, name);
@@ -328,8 +364,17 @@ export function Project() {
 			} else {
 				await restoreTab(action.id);
 			}
-		} catch {
+		} catch (error) {
 			setTabFailed(step === "undo" ? "Could not undo that." : "Could not redo that.");
+			/* A moved note archived since, from its own row, is gone for good, so
+			   its step would fail on every press and keep everything before it out
+			   of reach. It is stepped over instead; the toast still says it did
+			   not happen. Every other failure stays put, to be pressed again. */
+			const gone = action.kind === "move" && error instanceof ApiError && error.status === 404;
+			if (gone) {
+				if (step === "undo") tabHistory.commitUndo();
+				else tabHistory.commitRedo();
+			}
 			return;
 		}
 
@@ -337,7 +382,7 @@ export function Project() {
 		else tabHistory.commitRedo();
 
 		if (action.kind === "rename" && action.id === null) projects.refetch();
-		else tabs.refetch();
+		else if (action.kind !== "move") tabs.refetch();
 		/* A tab that just went away cannot stay the open one. */
 		if (removing && action.id === tabId) setSearchParams({}, { replace: true });
 		else notes.refetch();
@@ -385,7 +430,12 @@ export function Project() {
 		return () => document.removeEventListener("keydown", onKey);
 	}, []);
 
-	if (projects.loading) {
+	/* A remembered list can predate a project made elsewhere, so missing from
+	   it proves nothing until the fresh list says the same. A failed fetch is
+	   an answer too: the message below then shows with its toast. */
+	const unsure = project === null && !projects.confirmed && projects.error === null;
+
+	if (projects.loading || unsure) {
 		return (
 			<>
 				<TopBar backTo="/" title="" />
@@ -432,6 +482,7 @@ export function Project() {
 						onArchive={(archivedId) => void archiveTabAndNotes(archivedId)}
 						onToggleChecklist={(target) => void toggleChecklist(target)}
 						onReorder={reorderTabs}
+						onMoveNote={(noteId, target) => void moveNote(noteId, target)}
 					/>
 				}
 			/>
@@ -558,6 +609,8 @@ function Section({
 		event.dataTransfer.effectAllowed = "move";
 		/* Firefox starts no drag at all unless the drag carries something. */
 		event.dataTransfer.setData("text/plain", id);
+		/* What lets a tab chip take the row: dropped there, the note moves. */
+		event.dataTransfer.setData(NOTE_DRAG, id);
 	}
 
 	/* Hovering a row moves the dragged one into its place, so the list shows the

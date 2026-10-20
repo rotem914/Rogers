@@ -99,7 +99,10 @@ export type TabAction =
 	/** Like a remove, but the tab's notes went with it, and come back with it. */
 	| { kind: "archive"; id: string }
 	/** A null id is the first tab, which has no row and is renamed on the project. */
-	| { kind: "rename"; id: string | null; from: string; to: string };
+	| { kind: "rename"; id: string | null; from: string; to: string }
+	/** A note dropped on another tab. The id is the note's; null on either side
+	 *  is Main, and `from` is the exact tab the note named, removed or not. */
+	| { kind: "move"; id: string; from: string | null; to: string | null };
 
 export class TabHistory {
 	private past: TabAction[] = [];

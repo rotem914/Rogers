@@ -74,3 +74,8 @@ Moved here verbatim by project-os/rotate-history.ps1. Movement only: rows are ne
 | 2026-09-06 | design | **Home's new-project tile draws the same plus the tabs use, inside a solid 2px edge.** The typed plus character is gone, so one drawn shape now means add in both places. Hovering it fills the tile instead of lighting its edge, over the same 144ms the other cards use. |
 | 2026-09-06 | deploy | **The logo and the taller bar are live.** Version `84d57745`, no schema involved. |
 | 2026-09-06 | done | **The logo really does render on the live site.** Rotem checked it signed in, which is the one thing a shell with no session could not answer. |
+| 2026-09-06 | design | **The bar sits 56px from the top of the window instead of 32.** Every screen moved together, so the content below each one starts 24px lower. |
+| 2026-09-06 | design | **Home's title is Rotem's logo now, drawn, not typed.** The mark and the wordmark take the bar's own text colour, and the bar kept its height, so nothing below it moved. |
+| 2026-09-06 | deploy | **The colour pass and the new-project tile are live.** The darker ground, the card colours, the splash and offline page, and the tile with its drawn plus, all in one deploy, version `6d12171d`. |
+| 2026-09-06 | deploy | **Tabs are live at rogers.rotem-e.com.** The live database got the tabs table and the note column first, so the new list query had something to read, then the deploy, version `e1ac5d1f`. The login still fronts every address, the new tabs route included. |
+| 2026-09-06 | design | **The back arrow is a 32px icon in a fully round hover.** Only the top bar arrow changed: the glyph went from 24px to 32px inside the same 48px hit area, and its hover shape went from the 13px card radius to a full circle. |

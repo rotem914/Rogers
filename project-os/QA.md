@@ -414,6 +414,33 @@ tab note archived on its own beforehand; archive the project at the end:
 6. Make the archive request fail by wrapping `window.fetch`: the toast reads
    "Could not archive the tab." and the tab and its notes stay.
 
+## 10l. Moving a note to another tab
+
+A note row dragged up onto a tab chip moves to that tab. The drag is driven
+the dispatched way (§10c), on a throwaway project with Main and two tabs,
+archived at the end:
+
+1. Start the row's drag: its drag carries `application/x-rogers-note` beside
+   the plain text.
+2. Hold it over another tab, Main included: the chip lights to the hover
+   colour and its dragover is accepted. Over the open tab: no light, not
+   accepted. Let go elsewhere or end the drag: the light goes and nothing moves.
+3. Drop it: one PATCH with only `tabId`, no tab order request, the row leaves
+   the list, the target tab's list has it, and its title and body are intact.
+   Reload the target tab: it is still there.
+4. A pinned note moves pinned. It lands among the target's never-dragged notes
+   by its date, not always on top, Rotem's call on 2026-10-20.
+5. Ctrl+Z with a real key puts it back, Ctrl+Shift+Z moves it again, and the
+   tabs are untouched by both.
+6. Remove a tab, move one of its notes from Main to another tab, Ctrl+Z twice:
+   the removed tab comes back WITH that note. A note back in Main with a null
+   tab is the regression.
+7. Move a note, archive it, Ctrl+Z: the toast says it could not undo, and the
+   next Ctrl+Z reaches the step before instead of failing again.
+8. Make the PATCH fail by wrapping `window.fetch`: the toast reads "Could not
+   move the note." and the row stays.
+9. Dragging a tab along the strip still reorders and saves, and lights no chip.
+
 ## 11. Prove a tool is missing before you claim it is
 
 `CLAUDE.md` rule 6 holds this rule in full: search before you claim a browser tool is

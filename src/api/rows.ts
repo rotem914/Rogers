@@ -106,6 +106,7 @@ export function toNotePreview(row: NoteRow): NotePreview {
 		images: parseImages(row.images),
 		pinnedAt: row.pinned_at,
 		checked: row.checked === 1,
+		tabId: row.tab_id,
 	};
 }
 

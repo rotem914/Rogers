@@ -11,6 +11,12 @@ export type ApiState<T> = {
 	data: T | null;
 	/** True until the first answer arrives; a refetch keeps the old data visible. */
 	loading: boolean;
+	/**
+	 * True once the data on screen is the network's answer for this path, not a
+	 * remembered copy. A screen that concludes something is gone from what the
+	 * list lacks waits for this, because a remembered list can predate the thing.
+	 */
+	confirmed: boolean;
 	error: string | null;
 	refetch: () => void;
 };
@@ -116,6 +122,7 @@ export function useApi<T>(path: string | null, options: ApiOptions = {}): ApiSta
 	const remember = options.remember === true;
 	const [data, setData] = useState<T | null>(() => recall<T>(path, remember));
 	const [loading, setLoading] = useState(path !== null && data === null);
+	const [confirmed, setConfirmed] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 
 	/* Every run gets a number, and only the newest one is allowed to write to
@@ -134,6 +141,7 @@ export function useApi<T>(path: string | null, options: ApiOptions = {}): ApiSta
 
 		const run = ++runRef.current;
 		setError(null);
+		setConfirmed(false);
 
 		/* A remembered answer goes on screen first; the fetch below replaces it. */
 		const known = recall<T>(path, remember);
@@ -150,6 +158,7 @@ export function useApi<T>(path: string | null, options: ApiOptions = {}): ApiSta
 				if (remember) store(path, result);
 				setData(result);
 				setLoading(false);
+				setConfirmed(true);
 			})
 			.catch((cause: unknown) => {
 				if (run !== runRef.current) return;
@@ -165,5 +174,5 @@ export function useApi<T>(path: string | null, options: ApiOptions = {}): ApiSta
 	// eslint-disable-next-line react-hooks/set-state-in-effect
 	useEffect(load, [load]);
 
-	return { data, loading, error, refetch: load };
+	return { data, loading, confirmed, error, refetch: load };
 }

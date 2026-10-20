@@ -72,6 +72,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-08 · Tabs are dragged into order, and Main is not one of them
 - 2026-09-16 · A draft that could not become a note stays open, and keepalive is for pagehide only
 - 2026-09-23 · Archive takes a tab's notes with it, stamped with the tab's own time
+- 2026-10-20 · A note moves by being dropped on a tab, and undo writes back the exact tab it named
 
 ---
 
@@ -696,3 +697,47 @@ page is the only way back from the screen; after leaving the page, a restore
 is a database edit on request. Revisit when an Archive screen arrives, which
 would list these notes as ordinary archived notes unless it groups them by
 their tab's stamp.
+
+---
+
+## 2026-10-20 · A note moves by being dropped on a tab, and undo writes back the exact tab it named
+
+### Context
+Rotem asked to move notes between tabs. The 2026-09-06 entry on Main had named
+this as the moment to revisit writing a note's tab id. Two questions were his:
+how a note moves, and whether Ctrl+Z takes a move back. Three were left to the
+assistant: where a moved note lands, what undo writes back for a note that sits
+in Main while still naming a removed tab, and what undo does when the moved
+note was archived since.
+
+### Options
+1. A Move to item on the row's right-click, listing the other tabs.
+2. Dragging the row onto a tab chip in the strip.
+3. Both.
+4. Undo writes back the tab the page had open, null for Main.
+5. Undo writes back the tab id the note itself carried, removed or not, so the
+   list rows carry it and the PATCH accepts any tab of the note's project.
+6. A failed undo of a move always stays on the stack, like every other step.
+7. A move whose note answers 404 is stepped over, the toast still shown.
+
+### Decision
+Option 2, Rotem's call on 2026-10-20, knowing it is mouse only. Ctrl+Z takes a
+move back, also his call, through the same `TabHistory` as the tab actions, so
+Ctrl+Z right after a move never undoes the tab action before it instead.
+
+Options 5 and 7, taken by the assistant. Option 4 was rejected because a note
+in Main can still name a removed tab: writing null there would leave it behind
+in Main when that tab is brought back. Option 6 was rejected because a note
+archived from its own row is gone for good, and its step would fail on every
+press and keep every earlier step out of reach.
+
+A move drops the note's hand-dragged place and keeps its pin, the same rule a
+pin crossing between sections already follows.
+
+### Consequences
+A moved note lands among the never-dragged notes of its new list, by its date,
+not always on top, and undo puts it back the same way, not in the exact slot it
+held. The keyboard has no way to move a note. A note may now name a removed
+tab through the API, which shows it in Main, never nowhere. Revisit if Rotem
+wants a moved note on top, which means writing positions for the whole target
+section, or if a keyboard path is needed, which is option 1.

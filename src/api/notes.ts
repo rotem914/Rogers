@@ -266,6 +266,19 @@ async function tabIsLive(
 	return row !== null;
 }
 
+/** Is this tab this project's, removed or not? What a move may name. */
+async function tabIsInProject(
+	db: D1Database,
+	id: string,
+	projectId: string,
+): Promise<boolean> {
+	const row = await db
+		.prepare(`SELECT 1 AS ok FROM tabs WHERE id = ? AND project_id = ?`)
+		.bind(id, projectId)
+		.first<{ ok: number }>();
+	return row !== null;
+}
+
 /* ------------------------------------------------------------------ one note
  *
  * A note by its own address. This is what the note page reads and what autosave
@@ -380,6 +393,28 @@ notes.patch("/:id", async (c) => {
 		   cannot take part in losing text the way a full assignment could. */
 		assignments.push("checked = ?");
 		values.push(body.checked ? 1 : 0);
+	}
+
+	if (body !== null && "tabId" in body) {
+		const target = body.tabId;
+		/* Any tab of this note's own project, a removed one included: that is
+		   what undo sends back for a note that sat in Main while still naming its
+		   removed tab, so restoring that tab later takes the note with it. A
+		   note sent to a tab that is not live shows in Main, never nowhere. */
+		if (
+			target !== null &&
+			(!isUsableId(target) || !(await tabIsInProject(c.env.DB, target, existing.project_id)))
+		) {
+			return c.json<ApiErrorBody>({ error: "No such tab." }, 400);
+		}
+		/* A move is a crossing between two lists, so the hand-dragged place it
+		   held in the one it left is dropped, the same as a pin crossing between
+		   sections. The pin itself is kept: a pinned note stays pinned. */
+		if (target !== existing.tab_id) {
+			assignments.push("tab_id = ?");
+			values.push(target);
+			assignments.push("position = NULL");
+		}
 	}
 
 	if (assignments.length === 0) {

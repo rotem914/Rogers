@@ -67,6 +67,12 @@ export type NotePreview = {
 	pinnedAt: string | null;
 	/** The row's own mark, drawn only while its tab has a checklist. */
 	checked: boolean;
+	/**
+	 * The tab the note itself names. Null means Main. A row in Main can still
+	 * name a removed tab, which is why the page reads this instead of assuming
+	 * the open one: taking a move back has to put that exact value back.
+	 */
+	tabId: string | null;
 };
 
 /** One note, on its own page. */
@@ -159,6 +165,12 @@ export type UpdateNoteBody = {
 	pinned?: boolean;
 	/** The checklist mark. It changes nothing else about the note. */
 	checked?: boolean;
+	/**
+	 * The tab to move it to. Null is Main. Any tab of the note's own project is
+	 * accepted, a removed one too, because that is what undo sends back for a
+	 * note that sat in Main while still naming its removed tab.
+	 */
+	tabId?: string | null;
 };
 
 /**
