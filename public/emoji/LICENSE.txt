@@ -1,0 +1,9 @@
+All emoji in this folder are designed by OpenMoji, the open-source emoji and icon project.
+https://openmoji.org
+
+Version 15.1.0, the colour SVGs.
+License: CC BY-SA 4.0, https://creativecommons.org/licenses/by-sa/4.0/
+
+The files are copied unchanged, only renamed to their code points in lowercase.
+The skin-tone variants and the bare components are left out.
+index.json is built from OpenMoji's own data/openmoji.json: code, name, search words.

@@ -9,7 +9,9 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import type { Project, UpdateProjectBody } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
+import { emojiUrl } from "../lib/emoji";
 import { prefetch } from "../lib/useApi";
+import { EMOJI_PICKER_WIDTH, EmojiPicker } from "./EmojiPicker";
 
 /** The accents a project can wear. Borders only, so nothing competes with text. */
 const COLORS: { label: string; value: string | null }[] = [
@@ -22,7 +24,7 @@ const COLORS: { label: string; value: string | null }[] = [
 	{ label: "Purple", value: "#d3a4f9" },
 ];
 
-type Mode = "view" | "menu" | "renaming" | "colouring";
+type Mode = "view" | "menu" | "renaming" | "colouring" | "emoji";
 
 /** The popups' own widths, `w-36` and the seven swatches, so each stays in the tile. */
 const MENU_WIDTH = 144;
@@ -41,9 +43,14 @@ export function ProjectTile({
 	const root = useRef<HTMLDivElement>(null);
 
 	/* Where the right-click landed, measured from the tile's own corner, plus how
-	   wide the tile is so a popup can be kept inside it. Same shape as a note row
-	   in the list. */
-	const [point, setPoint] = useState<{ x: number; y: number; width: number } | null>(null);
+	   wide the tile is so a popup can be kept inside it, and where the tile starts
+	   in the window, for the emoji picker, which is wider than a narrow tile. */
+	const [point, setPoint] = useState<{
+		x: number;
+		y: number;
+		width: number;
+		left: number;
+	} | null>(null);
 
 	/* Escape closes whatever is open. A click outside closes the popups too, and
 	   only them: there is no button left to toggle the menu shut, and renaming
@@ -108,6 +115,20 @@ export function ProjectTile({
 		};
 	}
 
+	/** The emoji picker: inside the tile where it fits. On a tile narrower than
+	 *  the picker it lines up with the tile's right edge instead, and never
+	 *  starts closer than 8px to the window's left edge. */
+	function pickerAt() {
+		if (point === null) return undefined;
+		return {
+			left: Math.max(
+				8 - point.left,
+				Math.min(point.x, point.width - EMOJI_PICKER_WIDTH),
+			),
+			top: point.y,
+		};
+	}
+
 	/* Hovering or focusing the tile asks for the project's tabs and Main's notes
 	   ahead of the click, so the project page opens with its list already there. */
 	function warm() {
@@ -119,15 +140,16 @@ export function ProjectTile({
 		<div
 			ref={root}
 			onContextMenu={(event) => {
-				/* Not while renaming: that field keeps the browser's own menu, so
-				   pasting a name still works. */
-				if (mode === "renaming") return;
+				/* Not while renaming or picking an emoji: those fields keep the
+				   browser's own menu, so pasting still works. */
+				if (mode === "renaming" || mode === "emoji") return;
 				event.preventDefault();
 				const box = event.currentTarget.getBoundingClientRect();
 				setPoint({
 					x: event.clientX - box.left,
 					y: event.clientY - box.top,
 					width: box.width,
+					left: box.left,
 				});
 				setMode("menu");
 			}}
@@ -161,9 +183,32 @@ export function ProjectTile({
 						onFocus={warm}
 						className="absolute inset-0 rounded-card"
 					/>
-					<span className="bidi pointer-events-none line-clamp-3 text-[24px] font-medium">
-						{project.name}
-					</span>
+					{/* A list remembered from before emoji existed has no field at
+					    all, so a missing one reads as none. With an emoji, the emoji
+					    and the name sit together at the left, Hebrew names too, and
+					    the emoji centres on the name's first line. */}
+					{project.emoji ? (
+						<div
+							dir="ltr"
+							className="pointer-events-none flex items-start gap-3 text-[24px] font-medium"
+						>
+							<span className="flex h-[1lh] shrink-0 items-center">
+								<img
+									src={emojiUrl(project.emoji)}
+									alt=""
+									width={32}
+									height={32}
+									draggable={false}
+									className="size-8"
+								/>
+							</span>
+							<span className="bidi line-clamp-3 min-w-0">{project.name}</span>
+						</div>
+					) : (
+						<span className="bidi pointer-events-none line-clamp-3 text-[24px] font-medium">
+							{project.name}
+						</span>
+					)}
 				</>
 			)}
 
@@ -182,8 +227,13 @@ export function ProjectTile({
 						Rename
 					</MenuItem>
 					<MenuItem onClick={() => setMode("colouring")}>Colour</MenuItem>
+					<MenuItem onClick={() => setMode("emoji")}>Emoji</MenuItem>
 					<MenuItem onClick={() => void archive()}>Archive</MenuItem>
 				</div>
+			)}
+
+			{mode === "emoji" && (
+				<EmojiPicker style={pickerAt()} onPick={(code) => void save({ emoji: code })} />
 			)}
 
 			{mode === "colouring" && (

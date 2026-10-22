@@ -28,6 +28,12 @@ export type Project = {
 	name: string;
 	/** Optional accent. Null means the default surface. */
 	color: string | null;
+	/**
+	 * The emoji beside the name, as its code points in lowercase hex joined by
+	 * hyphens, `1f4dd` for the memo. Null means none. A list remembered from
+	 * before this field existed lacks it, so the tile reads a missing one as none.
+	 */
+	emoji: string | null;
 	/** Live notes inside it, so the tile can say "12 notes" without a second call. */
 	noteCount: number;
 	/**
@@ -102,6 +108,8 @@ export type UpdateProjectBody = {
 	name?: string;
 	/** Null clears the accent back to the default surface. */
 	color?: string | null;
+	/** Code points in lowercase hex joined by hyphens. Null takes the emoji away. */
+	emoji?: string | null;
 	/** Renames the first tab. Null puts it back to "Main". */
 	mainTabName?: string | null;
 };

@@ -48,12 +48,12 @@ Rogers/
 │   ├── api/               # the Worker: projects, tabs, notes, images (upload and serve), rows, http
 │   ├── web/               # the SPA
 │   │   ├── pages/         # one file per address: Home, Project, Note
-│   │   ├── components/    # TopBar, Logo, ProjectTile, TabStrip, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
+│   │   ├── components/    # TopBar, Logo, ProjectTile, EmojiPicker, TabStrip, NoteRow, Composer, Menu, Feedback, ImageStrip, AutoGrowTextarea
 │   │   ├── platform/      # api-client, session expiry, web-or-tauri shim
-│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in; reorder.ts, the shared drag helpers
+│   │   ├── lib/           # useApi, the read hook; autosave.ts, the one-in-flight saver; upload.ts, pictures in; reorder.ts, the shared drag helpers; emoji.ts, where an emoji's picture lives
 │   │   └── styles/        # tokens.css, the whole palette; fonts/, the Google Sans files and their licence
 │   └── shared/            # types both sides import
-├── public/                # served as-is: manifest.webmanifest, sw.js (offline page only), offline.html, icons/
+├── public/                # served as-is: manifest.webmanifest, sw.js (offline page only), offline.html, icons/, emoji/ (OpenMoji SVGs, index.json, LICENSE.txt)
 ├── notes/                 # free-standing documents
 ├── project-os/            # the process docs, hooks installer, rotation scripts
 ├── .claude/               # settings.local.json with the hooks; personal, not committed
@@ -90,3 +90,4 @@ anything.
 | Platform | `src/web/platform/*` | Where the API lives, what an expired Access session looks like, and web versus Tauri. Every request goes through `api-client.ts`; no screen calls `fetch` itself. |
 | Look | `src/web/styles/tokens.css`, `src/web/index.css`, `src/web/styles/fonts/` | The palette and the base sheet. A raw hex anywhere else is a bug. The fonts are served by Rogers itself, never from Google; `OFL.txt` and `TRADEMARKS.txt` must stay beside them, since shipping the licence is the condition for using the typeface. |
 | Shared | `src/shared/*` | Types both sides import. One definition only; never a second copy under api or web. |
+| Emoji | `public/emoji/*`, `src/web/components/EmojiPicker.tsx` | 2,400 OpenMoji 15.1.0 colour SVGs, copied unchanged and named by lowercase code points, plus `index.json` for the picker's search. A project stores only the code. `LICENSE.txt` must stay beside them: CC BY-SA 4.0 asks for the credit. |

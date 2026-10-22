@@ -73,6 +73,7 @@ task touches. A line in _italics_ means part of that entry no longer holds.
 - 2026-09-16 · A draft that could not become a note stays open, and keepalive is for pagehide only
 - 2026-09-23 · Archive takes a tab's notes with it, stamped with the tab's own time
 - 2026-10-20 · A note moves by being dropped on a tab, and undo writes back the exact tab it named
+- 2026-10-22 · A project's emoji is an OpenMoji code point, served by Rogers itself
 
 ---
 
@@ -741,3 +742,36 @@ held. The keyboard has no way to move a note. A note may now name a removed
 tab through the API, which shows it in Main, never nowhere. Revisit if Rotem
 wants a moved note on top, which means writing positions for the whole target
 section, or if a keyboard path is needed, which is option 1.
+
+## 2026-10-22 · A project's emoji is an OpenMoji code point, served by Rogers itself
+
+### Context
+Rotem asked for a 32 by 32 emoji left of each project's name. A typed emoji
+character is drawn by each device's own font, so Windows and the iPhone would
+show two different drawings. He wanted one look everywhere, from a library he
+could approve.
+
+### Options
+1. The device's own emoji: no files, a different drawing on every device.
+2. Microsoft Fluent 3D: Rotem's first pick, MIT, 1,285 emoji at 256px.
+3. OpenMoji: the library Rotem then linked, CC BY-SA 4.0, colour SVGs.
+4. Any set loaded from a CDN instead of from Rogers.
+
+### Decision
+Option 3, by Rotem, replacing his pick of option 2 before any Fluent file was
+fetched. The colour SVGs of OpenMoji 15.1.0 are copied unchanged into
+`public/emoji`, named by lowercase code points, with every emoji except the
+1,875 skin-tone variants and the 9 bare components: 2,400, the OpenMoji extras
+included. A project stores only the code, `1f4dd`, in a nullable column. The
+pictures come from Rogers, as the fonts do, so the tile never depends on an
+outside host. Rotem's other calls: the whole library with search, nothing when
+no emoji is picked, always on the left, 12px from the name.
+
+### Consequences
+The repository carries about 12 MB of SVG, and the Worker serves 2,400 more
+static files. The CC BY-SA credit lives in `public/emoji/LICENSE.txt`; no credit
+line shows in the app. Storing code points, not file names, means another set
+named the same way could replace this one without touching a row. Skin tones
+can come back by adding the variants to the index. A long Hebrew name wraps and
+keeps to the right, so its first line can sit apart from an emoji on the left.
+Revisit if Rotem wants the credit on screen, skin tones, or a lighter set.

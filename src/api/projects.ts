@@ -23,7 +23,7 @@ export const projects = new Hono<{ Bindings: Env }>();
    note count is a subquery rather than a second round trip, and it counts live
    notes only. */
 const COLUMNS = `
-	p.id, p.name, p.color, p.main_tab_name, p.created_at, p.updated_at, p.archived_at,
+	p.id, p.name, p.color, p.emoji, p.main_tab_name, p.created_at, p.updated_at, p.archived_at,
 	(SELECT count(*) FROM notes n
 	  WHERE n.project_id = p.id AND n.archived_at IS NULL) AS note_count
 `;
@@ -39,6 +39,9 @@ const LIST_SQL = `SELECT ${COLUMNS} FROM projects p
 /* Deliberately finds archived projects too. Each route decides what to do with
    one, which is not the same answer for a rename as for a repeated archive. */
 const ONE_SQL = `SELECT ${COLUMNS} FROM projects p WHERE p.id = ?`;
+
+/** An emoji's code points: lowercase hex, joined by hyphens, `1f4dd` or `1f468-200d-1f4bb`. */
+const EMOJI = /^[0-9a-f]{2,6}(-[0-9a-f]{2,6}){0,9}$/;
 
 projects.get("/", async (c) => {
 	const { results } = await c.env.DB.prepare(LIST_SQL).all<ProjectListRow>();
@@ -89,6 +92,7 @@ projects.post("/", async (c) => {
 			id,
 			name,
 			color: null,
+			emoji: null,
 			noteCount: 0,
 			mainTabName: null,
 			createdAt: now,
@@ -181,6 +185,21 @@ projects.patch("/:id", async (c) => {
 		}
 		assignments.push("color = ?");
 		values.push(color);
+	}
+
+	/* The emoji ends up in a picture's address on the tile, so it is held to the
+	   one shape every emoji file is named by: hex code points joined by hyphens.
+	   Null takes it away. */
+	if (body !== null && "emoji" in body) {
+		const emoji = body.emoji;
+		if (emoji !== null && (typeof emoji !== "string" || !EMOJI.test(emoji))) {
+			return c.json<ApiErrorBody>(
+				{ error: "An emoji is its code points in hex, or null to clear it." },
+				400,
+			);
+		}
+		assignments.push("emoji = ?");
+		values.push(emoji);
 	}
 
 	/* The first tab's name. It has no tab row of its own, so renaming it is a

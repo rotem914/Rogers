@@ -9,6 +9,7 @@
  * Pictures come in by paste, by drop, or through the image button. */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { useNavigate, useParams } from "react-router";
 import type { Note as NoteType, UpdateNoteBody } from "../../shared/types";
 import { apiFetch } from "../platform/api-client";
@@ -74,6 +75,7 @@ function Editor({ note }: { note: NoteType }) {
 
 	const saver = useRef<NoteSaver | null>(null);
 	const picker = useRef<HTMLInputElement>(null);
+	const field = useRef<HTMLTextAreaElement>(null);
 	const latest = useRef({ title: note.title, body: note.body, images: note.images });
 	const [undo] = useState(
 		() => new UndoStack({ title: note.title, body: note.body, images: note.images }),
@@ -172,6 +174,29 @@ function Editor({ note }: { note: NoteType }) {
 		}
 		document.addEventListener("keydown", onKey);
 		return () => document.removeEventListener("keydown", onKey);
+	});
+
+	/* A click on the bare page below the text opens a new line at its end, with
+	   the caret on it. A last line that is already empty is reused, so clicking
+	   twice does not stack blank lines. The bar, the pictures, the menus and
+	   every control keep their own clicks, and so does the page's scrollbar,
+	   whose presses reach the document too. The line goes in through `change`,
+	   like a typed Enter, so it is saved and undone the same way. */
+	useEffect(() => {
+		function onDown(event: MouseEvent) {
+			const el = field.current;
+			if (el === null || event.button !== 0 || !(event.target instanceof Element)) return;
+			if (event.clientX >= document.documentElement.clientWidth) return;
+			if (event.target.closest("header, button, a, input, textarea, ul, [role]") !== null) return;
+			if (event.clientY <= el.getBoundingClientRect().bottom) return;
+			event.preventDefault();
+			const text = latest.current.body;
+			if (text !== "" && !text.endsWith("\n")) flushSync(() => change({ body: `${text}\n` }));
+			el.focus({ preventScroll: true });
+			el.setSelectionRange(el.value.length, el.value.length);
+		}
+		document.addEventListener("mousedown", onDown);
+		return () => document.removeEventListener("mousedown", onDown);
 	});
 
 	/* Back: let the pictures land, save, discard an empty note, then go. */
@@ -348,6 +373,7 @@ function Editor({ note }: { note: NoteType }) {
 					/>
 
 					<AutoGrowTextarea
+						ref={field}
 						value={body}
 						placeholder="Take a note…"
 						aria-label="Note"

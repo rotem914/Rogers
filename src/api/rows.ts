@@ -13,6 +13,8 @@ export type ProjectRow = {
 	id: string;
 	name: string;
 	color: string | null;
+	/** Code points in lowercase hex joined by hyphens. Null means no emoji. */
+	emoji: string | null;
 	/** What the first tab is called. Null means it was never renamed. */
 	main_tab_name: string | null;
 	created_at: string;
@@ -58,6 +60,7 @@ export function toProject(row: ProjectListRow): Project {
 		id: row.id,
 		name: row.name,
 		color: row.color,
+		emoji: row.emoji,
 		noteCount: row.note_count,
 		mainTabName: row.main_tab_name,
 		createdAt: row.created_at,
